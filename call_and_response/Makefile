@@ -1,9 +1,10 @@
+include Makefile.inc
 CC=mpicc
 CXX=mpicxx
 RM=rm -f
-CPPFLAGS=-g -I/home/khuck/src/sos_flow/build-linux/include
+CPPFLAGS=-g -I$(SOSDIR)/include
 LDFLAGS=-g
-LDLIBS=-L/home/khuck/src/sos_flow/build-linux/lib -lsos
+LDLIBS=-L$(SOSDIR)/lib -lsos
 
 SRCS=$(wildcard *.cpp)
 OBJS=$(subst .cpp,.o,$(SRCS))
