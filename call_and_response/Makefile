@@ -21,7 +21,7 @@ depend: .depend
 	$(CXX) $(CPPFLAGS) -MM $^>>./.depend;
 
 clean:
-	$(RM) $(OBJS) $(TARGET)
+	$(RM) $(OBJS) $(TARGET) sosd.*
 
 distclean: clean
 	$(RM) *~ .depend
