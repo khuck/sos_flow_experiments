@@ -1,8 +1,5 @@
-#include "mpi.h"
-#include "sos.h"
 #include "globals.h"
 #include <sstream>
-#include <iostream>
 #include <vector>
 #include <iterator>
 #include <unistd.h>
@@ -57,6 +54,7 @@ void send_shutdown_message(void) {
     SOS_msg_header  header;
     int offset;
     if (rank == _daemon_rank) {
+    	setenv("SOS_SHUTDOWN", "1", 1);
 
         SOS_buffer_init(_runtime, &buffer);
 
@@ -185,6 +183,7 @@ void initialize(int * argc, char *** argv) {
         }
         initialized = true;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     make_pub();
 }
 
@@ -220,7 +219,7 @@ void finalize(void) {
     if (finalized) return;
     // shutdown the daemon, if necessary
     if (_shutdown_daemon) {
-        send_shutdown_message();
+        //send_shutdown_message();
         // shouldn't be necessary, but sometimes the shutdown message is ignored?
         //fork_exec_sosd_shutdown();
     }
@@ -229,10 +228,8 @@ void finalize(void) {
     finalized = true;
 }
 
-void send_data(void) {
-  int calls = 1;
-  std::cout << "Sending data" << std::endl;
-  SOS_pack(_sos_pub, "test value", SOS_VAL_TYPE_INT, &calls);
+void sample_value(std::string name, double value) {
+  //std::cout << "Sending data : " << name << ": " << value << std::endl;
+  SOS_pack(_sos_pub, name.c_str(), SOS_VAL_TYPE_DOUBLE, &value);
   SOS_publish(_sos_pub);
 }
-

@@ -1,22 +1,11 @@
-sos_code.o: sos_code.cpp \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpi.h \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpio.h \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpi.h \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpicxx.h \
+main.o: main.cpp globals.h \
+ /cm/shared/apps/mpich/ge/gcc/64/3.2rc2/include/mpi.h \
+ /cm/shared/apps/mpich/ge/gcc/64/3.2rc2/include/mpio.h \
+ /cm/shared/apps/mpich/ge/gcc/64/3.2rc2/include/mpi.h \
+ /cm/shared/apps/mpich/ge/gcc/64/3.2rc2/include/mpicxx.h \
  /home/khuck/src/sos_flow/build-linux/include/sos.h \
  /home/khuck/src/sos_flow/build-linux/include/sos_types.h \
  /home/khuck/src/sos_flow/build-linux/include/sos_qhashtbl.h \
  /home/khuck/src/sos_flow/build-linux/include/sos_pipe.h \
  /home/khuck/src/sos_flow/build-linux/include/sos_buffer.h \
- /home/khuck/src/sos_flow/build-linux/include/sos.h globals.h
-main.o: main.cpp \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpi.h \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpio.h \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpi.h \
- /packages/intel/compilers_and_libraries_2017.2.174/linux/mpi/intel64/include/mpicxx.h \
- /home/khuck/src/sos_flow/build-linux/include/sos.h \
- /home/khuck/src/sos_flow/build-linux/include/sos_types.h \
- /home/khuck/src/sos_flow/build-linux/include/sos_qhashtbl.h \
- /home/khuck/src/sos_flow/build-linux/include/sos_pipe.h \
- /home/khuck/src/sos_flow/build-linux/include/sos_buffer.h \
- /home/khuck/src/sos_flow/build-linux/include/sos.h globals.h
+ /home/khuck/src/sos_flow/build-linux/include/sos.h

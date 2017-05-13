@@ -1,6 +1,9 @@
 #pragma once
 
+#include "mpi.h"
+#include "sos.h"
 #include <string>
+#include <iostream>
 
 #ifndef MY_EXTERN
 #define MY_EXTERN extern
@@ -19,6 +22,8 @@ void fork_exec_sosd_shutdown(void);
 void send_shutdown_message(void);
 void fork_exec_sosd(void);
 void finalize(void);
-void send_data(void);
-
+void sample_value(std::string, double);
+void send_sos_system_data(void);
+void main_loop(void);
+void setup_system_data(void);
 

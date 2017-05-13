@@ -1,6 +1,3 @@
-#include "mpi.h"
-#include "sos.h"
-
 #define MY_EXTERN
 #include "globals.h"
 
@@ -18,7 +15,7 @@ int main (int argc, char * argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &_commsize);
   printf("rank %d of %d, checking in.\n", _commrank, _commsize);
   initialize(&argc, &argv);
-  send_data();
+  main_loop();
   finalize();
   printf("finalizing.\n");
   MPI_Finalize();
