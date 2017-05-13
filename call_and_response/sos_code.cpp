@@ -145,6 +145,7 @@ void fork_exec_sosd(void) {
                 }
                 std::cout << "Rank " << rank << " spawning SOS daemon(s): " << custom_command << std::endl;
                 do_fork(custom_command);
+                _shutdown_daemon = true;
             } else {
                 std::cerr << "Please set the SOS_FORK_COMMAND environment variable to spawn SOS in the background." << std::endl;
             }
@@ -165,7 +166,6 @@ void initialize(int * argc, char *** argv) {
         if(_runtime == NULL) {
             printf("Unable to connect to SOS daemon. Spawning...\n");
             fork_exec_sosd();
-            _shutdown_daemon = true;
         }
         int repeat = 10;
         while(_runtime == NULL) {
@@ -219,7 +219,7 @@ void finalize(void) {
     if (finalized) return;
     // shutdown the daemon, if necessary
     if (_shutdown_daemon) {
-        //send_shutdown_message();
+        send_shutdown_message();
         // shouldn't be necessary, but sometimes the shutdown message is ignored?
         //fork_exec_sosd_shutdown();
     }

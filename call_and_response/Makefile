@@ -2,8 +2,8 @@ include Makefile.inc
 CC=mpicc
 CXX=mpicxx
 RM=rm -f
-CPPFLAGS=-g -I$(SOSDIR)/include -pthread
-LDFLAGS=-g -lpthread
+CPPFLAGS=-g -I$(SOSDIR)/include -pthread -fopenmp
+LDFLAGS=-g -lpthread -fopenmp
 LDLIBS=-L$(SOSDIR)/lib -lsos
 
 SRCS=$(wildcard *.cpp)
