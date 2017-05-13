@@ -20,6 +20,7 @@ int main (int argc, char * argv[]) {
   initialize(&argc, &argv);
   send_data();
   finalize();
+  printf("finalizing.\n");
   MPI_Finalize();
   return 0;
 }

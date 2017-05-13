@@ -22,3 +22,4 @@ export SOS_LISTENER_RANK_OFFSET=0
 
 #mpirun -np 2 ./main
 gdb --args ./main
+#./main

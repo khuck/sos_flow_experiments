@@ -231,6 +231,7 @@ void finalize(void) {
 
 void send_data(void) {
   int calls = 1;
+  std::cout << "Sending data" << std::endl;
   SOS_pack(_sos_pub, "test value", SOS_VAL_TYPE_INT, &calls);
   SOS_publish(_sos_pub);
 }
