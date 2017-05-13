@@ -5,9 +5,9 @@
 
 using namespace std;
 
-static ProcData *oldData;
-static ProcData *newData;
-static ProcData *periodData;
+static ProcData *oldData = nullptr;
+static ProcData *newData = nullptr;
+static ProcData *periodData = nullptr;
 
 inline bool file_exists (const std::string& name) {
   struct stat buffer;   
@@ -176,11 +176,13 @@ void setup_system_data(void) {
 
 void send_sos_system_data(void) {
   newData = parse_proc_stat();
-  periodData = newData->diff(*oldData);
-  periodData->sample_values();
-  delete(oldData);
-  delete(periodData);
-  oldData = newData;
+  if (newData != nullptr && oldData != nullptr) {
+    periodData = newData->diff(*oldData);
+    periodData->sample_values();
+    delete(oldData);
+    delete(periodData);
+    oldData = newData;
+  }
   parse_proc_self_status();
 }
 
