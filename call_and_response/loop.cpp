@@ -99,6 +99,13 @@ double do_work(int i) {
   return result;
 }
 
+/* for now, just balance at 50% of the iterations complete.
+ * Eventually, we want to get an analysis result from SOS. */
+void check_for_balance(int i) {
+    /* make the app balanced */
+    if (i >= max_iterations/2) _balanced=true;
+}
+
 void main_loop(void) {
   int i;
   double total = 0;
@@ -106,8 +113,8 @@ void main_loop(void) {
   for (i = 0 ; i < max_iterations ; i++ ) {
     /* wait for everyone to start at the same time */
     MPI_Barrier(MPI_COMM_WORLD);
-    /* make the app balanced */
-    if (i >= max_iterations/2) _balanced=true;
+    /* Ask SOS for update */
+    check_for_balance(i);
     /* make a timer */
     simple_timer t("Iteration");
     /* output status */
