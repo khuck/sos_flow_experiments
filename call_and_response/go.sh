@@ -12,7 +12,8 @@ hostname=`hostname`
 sosbin=/home/khuck/src/sos_flow/build-linux/bin
 cwd=`pwd`
 num_listeners=2
-app_ranks_per_node=1
+app_ranks_per_node=2
+app_ranks=4
 
 export sos_cmd="${sosbin}/sosd -l ${num_listeners} -a 1 -w ${cwd}"
 if [ ${num_listeners} == 0 ] ; then
@@ -38,10 +39,10 @@ mpirun -np 1 --host n002 ${sos_cmd} -k 0 -r aggregator &
 #sleep 8
 
 ldd main
-mpirun -np 2 -ppn 1 -hosts n003,n004 ./main
+mpirun -np ${app_ranks} -ppn ${app_ranks_per_node} -hosts n003,n004 ./main
 #gdb --args ./main
 #./main
 
 mpirun -np 3 -ppn 1 killall -9 sosd
-mpirun -np 3 -ppn 1 ${sosbin}/sosd_stop
+#mpirun -np 3 -ppn 1 ${sosbin}/sosd_stop
 ${sosbin}/showdb

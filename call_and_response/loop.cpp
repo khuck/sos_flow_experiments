@@ -2,8 +2,9 @@
 #include "simple_timer.h"
 #include <algorithm>
 
-const int max_iterations = 100;
 #define MATRIX_SIZE 512
+const int max_iterations = 10;
+const double increment_divisor = 5.0;
 
 double** allocateMatrix(int rows, int cols) {
   int i;
@@ -55,7 +56,7 @@ void compute(double **a, double **b, double **c, int rows_a, int cols_a, int col
   }   /*** End of parallel region ***/
 }
 
-#define increment(_foo,_i) (std::min((_foo),int((_foo)*((_i)/100.0))))
+#define increment(_foo,_i) (std::min((_foo),int((_foo)*((_i)/increment_divisor))))
 
 double do_work(int i) {
   double **a,           /* matrix A to be multiplied */
