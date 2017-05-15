@@ -161,23 +161,23 @@ void initialize(int * argc, char *** argv) {
     static bool initialized = false;
     if (!initialized) {
         _runtime = NULL;
-        printf("init() trying to connect...\n");
+        //printf("init() trying to connect...\n");
         SOS_init(argc, argv, &_runtime, SOS_ROLE_CLIENT, SOS_RECEIVES_NO_FEEDBACK, NULL);
         if(_runtime == NULL) {
-            printf("Unable to connect to SOS daemon. Spawning...\n");
+            printf("%d Unable to connect to SOS daemon. Spawning...\n", _commrank);
             fork_exec_sosd();
         }
         int repeat = 10;
         while(_runtime == NULL) {
             sleep(2);
             _runtime = NULL;
-            printf("init() trying to connect...\n");
+            //printf("init() trying to connect...\n");
             SOS_init(argc, argv, &_runtime, SOS_ROLE_CLIENT, SOS_RECEIVES_NO_FEEDBACK, NULL);
             if (_runtime != NULL) {
-                printf("Connected to SOS daemon. Continuing...\n");
+                printf("%d Connected to SOS daemon. Continuing...\n", _commrank);
                 break;
             } else if (--repeat < 0) { 
-                printf("Unable to connect to SOS daemon. Failing...\n");
+                printf("%d Unable to connect to SOS daemon. Failing...\n", _commrank);
                 return;
             }
         }
@@ -191,7 +191,7 @@ void make_pub() {
         char pub_name[SOS_DEFAULT_STRING_LEN] = {0};
         char app_version[SOS_DEFAULT_STRING_LEN] = {0};
 
-        printf("[make_pub]: Creating new pub...\n");
+        //printf("[make_pub]: Creating new pub...\n");
 
         _runtime->config.comm_rank = _commrank;
         _runtime->config.comm_size = _commsize;
@@ -207,8 +207,8 @@ void make_pub() {
         // sos_pub->meta.scope_hint    = SOS_SCOPE_SELF;
         // sos_pub->meta.retain_hint   = SOS_RETAIN_SESSION;
 
-        printf("[make_pub]:   ... done.  (pub->guid == %ld)\n", _sos_pub->guid);
-        printf("[make_pub]: Announcing the pub...\n");
+        //printf("[make_pub]:   ... done.  (pub->guid == %ld)\n", _sos_pub->guid);
+        //printf("[make_pub]: Announcing the pub...\n");
         SOS_announce(_sos_pub);
 }
 
@@ -219,7 +219,7 @@ void finalize(void) {
     if (finalized) return;
     // shutdown the daemon, if necessary
     if (_shutdown_daemon) {
-        send_shutdown_message();
+        // send_shutdown_message();
         // shouldn't be necessary, but sometimes the shutdown message is ignored?
         //fork_exec_sosd_shutdown();
     }

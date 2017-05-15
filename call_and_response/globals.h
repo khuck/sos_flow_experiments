@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 
+/* Make sure to declare & initialize these in main.cpp! */
 #ifndef MY_EXTERN
 #define MY_EXTERN extern
 MY_EXTERN int _commrank;
@@ -13,6 +14,7 @@ MY_EXTERN SOS_pub *_sos_pub;
 MY_EXTERN SOS_runtime * _runtime;
 MY_EXTERN int _daemon_rank;
 MY_EXTERN bool _shutdown_daemon;
+MY_EXTERN bool _balanced;
 #endif //MY_EXTERN
 
 void make_pub(void);

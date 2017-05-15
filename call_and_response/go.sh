@@ -1,9 +1,17 @@
-#!/bin/bash
+#!/bin/bash -x
+#SBATCH --nodes=3 
+#SBATCH --sockets-per-node=2 
+#SBATCH --cores-per-socket=14 
+#SBATCH --partition=defq 
+
+cd /home/khuck/src/sos_flow_experiments/call_and_response
+module load gcc intel slurm
+export LD_LIBRARY_PATH=/cm/local/apps/gcc/6.1.0/lib64:$LD_LIBRARY_PATH
 
 hostname=`hostname`
 sosbin=/home/khuck/src/sos_flow/build-linux/bin
 cwd=`pwd`
-num_listeners=0
+num_listeners=2
 app_ranks_per_node=1
 
 export sos_cmd="${sosbin}/sosd -l ${num_listeners} -a 1 -w ${cwd}"
@@ -23,15 +31,17 @@ killall -9 sosd
 rm -rf sosd.* profile* start0000*
 
 # launch the aggregator
-# mpirun -np 1 -ppn 1 -hosts n003 ${sos_cmd} -k 0 -r aggregator &
+# ${sos_cmd} -k 0 -r aggregator &
+mpirun -np 1 --host n002 ${sos_cmd} -k 0 -r aggregator &
 #${sos_cmd} -k 0 -r aggregator &
 
 #sleep 8
 
-
-#mpirun -np 2 -ppn ${app_ranks_per_node} -hosts n003 ./main
-gdb --args ./main
+ldd main
+mpirun -np 2 -ppn 1 -hosts n003,n004 ./main
+#gdb --args ./main
 #./main
 
-${sosbin}/sosd_stop
+mpirun -np 3 -ppn 1 killall -9 sosd
+mpirun -np 3 -ppn 1 ${sosbin}/sosd_stop
 ${sosbin}/showdb
