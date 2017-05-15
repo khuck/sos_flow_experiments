@@ -1,0 +1,97 @@
+
+
+Target: Cluster 2017
+
+Intro
+
+Motivation
+    - What is the SOS model (brief, refer to ESPT16 paper)
+    - Broader than scientific workflows or single-node performance
+        - Flow monitoring / understanding
+        - Coordinating multiple tools / perspectives
+        - In situ applications
+        - Couples easily with Big Data solutions
+            - But provides the lightweight online in situ stuff
+    - Wide range of HPC environments
+        - Legacy and modern machines
+        - Restrictive environments
+        - Can be used natively or via tools like TAU
+        - Support for multiple languages (C/C++/Python)
+
+Related Work
+
+Architecture and Implementation
+    - Basic parts of SOSflow (Overview)
+        - Daemon 
+        - Client
+        - Data
+        - Analytics
+    - Daemon
+        - Internal APIs decouple from particular technologies
+            - Allows for user freedom
+                - Single compiler flag to easily switch MPI<->EVPath
+                - Future-proofing, lessen the scope of rewrites
+    - Client
+        - SSOS (Simple SOS) API for external bindings
+    - Data
+        - Publication Handle
+        - Metadata
+        - Streams
+        - Storage
+        - Locality
+            - Origin, but also as analytics targets
+        - Persistance
+    - Analytics
+        - Provided as an API, allowing for a variety of uses
+            - Independent C/C++ modules
+            - Python (NumPy)
+            - In situ and Aggregate compatibility
+    - Functional demonstration of each part of SOS described above
+    - Examples of other users (MONA)
+
+Evaluating SOSflow
+    - Robustness
+        - Limitations
+            - Presently only one layer of aggregation
+                - But can have as many targets as needed
+            - Data is either permanent or tossed, doesn't expire
+            - Possible to OOMkill
+            - Possible to abuse the API
+                - Direct msg. of many MANY threads
+                - Pack/publish in an inner loop, etc.
+                - Storing full simulation data
+                - Extremely large buffers
+        - Describe async queue model and why it is needed
+            - "Eventual consistency" means no collectives req'd
+            - Data always processed in sequence for a given source
+        - Some experiments showing data integrity at scale
+    - Utility
+        - Support for multiple languages
+        - Output into many formats
+            - It is nice to be able to use SQL and not esoteric DSL's
+        - Online stream of information
+            - MPI
+            - EVPath
+            - Persistent storage
+        - In situ and aggregate
+            - Can perform analytics at various levels
+            - Run-time adaptivity of multiple components
+        - Feedback and control mechanisms
+            - Push/pull
+            - Direct messaging of processes
+            - Timer-based checkins
+            - Can be disabled to conserve resources
+    - Performance
+        - Experiments showing SOSflow's performance
+            - Scalability
+            - Overhead
+            - Perturbation
+            - Latency
+
+Conclusion
+
+Future Work
+
+Credits
+
+Bibliography

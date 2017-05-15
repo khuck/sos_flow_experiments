@@ -1,0 +1,3 @@
+#!/bin/bash
+make clean
+make && scp bare_conf.pdf ix.cs.uoregon.edu:/home/users/$USER/public_html/

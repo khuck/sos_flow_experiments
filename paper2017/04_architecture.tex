@@ -1,0 +1,347 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Architecture of SOSflow}
+%
+To better understand what can be done with SOSflow, it is useful to examine
+its architecture.
+%
+SOSflow is composed of four major components:
+\begin{itemize}
+\item \textbf{sosd} : Daemons
+\item \textbf{libsos} : Client Library
+\item \textbf{pub/sql} : Data
+\item \textbf{sosa} : Analytics \& Feedback 
+\end{itemize}
+%
+These components work together to provide extensive runtime capabilities to
+developers, administrators, and application end-users.
+%
+All of SOSflow runs in user-space, and does not require elevated priveledges
+to use any of its features.
+%
+%
+% ----------------------------------------------------------------------------%
+\subsection{SOSflow Daemons}
+%
+Online functionality of SOSflow is enabled by the presence of a
+user-space daemon.
+%
+This daemon operates completely independently from any applications, and
+does not interfere with or utilize any of their resources or
+communications.
+%
+The SOSflow daemons are launched from within a job script, before the user's
+applications are initialized.
+%
+These daemons discover and communicate amongst each other across 
+node boundaries within a user's allocation.
+%
+When crossing node boundaries, SOSflow uses the machine's high-speed
+communication fabric.
+%
+Inter-node communication may use either \textbf{MPI} or \textbf{EVPath} as
+needed, allowing for flexibility when configuring its deployment to
+various HPC environments.
+%
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{images/placeholder.jpg}
+\caption{SOSflow in situ and off-node daemons.}
+\label{fig_daemons}
+\end{figure}
+%
+%
+\par
+%
+The traditional deployment of SOSflow will have a single daemon instance
+running in situ for each node that a user's applications will be
+executing on.
+%
+Additional resources can be allocated in support of the SOSflow runtime
+as-needed to support scaling and to minimize perturbation of application
+performance.
+%
+One or more nodes are usually added to the user's allocation to
+host SOSflow aggregation daemons that combine the information
+that is being collected from the in situ daemons.
+%
+These aggregator daemons are useful for providing a holistic unified view
+at runtime, especially in service to online analytics modules.
+%
+Because they have more work to do than the in situ listener daemons, and
+also are a useful place to host analytics modules, it is advisable to
+place them on their own dedicated node[s].
+%
+%
+\subsubsection{In Situ} %----------%
+%
+Data coming from SOSflow clients moves into the in situ daemon across a
+light-weight local socket connection.
+%
+Any software that connects in to the SOSflow runtime can be thought of as a
+client.
+%
+Clients connect only to the daemon that is running on their same node.
+%
+No socket connections are made across node boundaries, so no special
+permissions are required to use SOSflow.
+%
+%
+\par
+The in situ daemon offers the complete functionality of the SOSflow runtime.
+%
+At startup, it creates a local persistent data store that gathers in all
+data that is submitted to it.
+%
+This local data store can be queried and updated via the SOSflow API, with
+all information moving over the local socket, avoiding any dependence on
+or contention with the filesystem resources.
+%
+Providing the full spectrum of data collected on node to clients and
+analytics modules on node allows for distributed online analytics
+processing.
+%
+Analytics modules running in situ can observe a manageable data set, and then
+exchange small intermediate results amongst themselves in order to compute
+a final global view.
+%
+SOSflow also supports running analytics at the aggregation points for direct
+query and analysis of global or enclave data, though it is potentially
+less scalable to perform centrally than in a distrubted fashion, depending
+on the amount of data being processed by the system.
+%
+%
+\par
+%
+SOSflow's internal data processing utilizes unbounded asynchrous queues
+for all messaging, aggregation, and data storage.
+%
+Pervasive design around asynchronous data movement allows for the SOSflow
+runtime to efficiently handle requests from clients and messaging between
+off-node daemons without incurring synchronization delays.
+%
+Asynchronous in situ design allows the SOSflow runtime to scale out
+beyond the practical limits imposed by globally synchronous data movement
+patterns.
+%
+\subsubsection{Aggregate} %----------%
+%
+A global perspective on application and system performance is often useful.
+%
+SOSflow automatically migrates information it is given into one or more
+aggregation targets.
+%
+This movement of information is transparent to user's of SOS, requiring
+no additional work on their part.
+%
+Aggregation targets are fully-functional instances of the SOSflow daemon,
+except that their principle data sources are the distributed in situ daemons
+rather than local clients.
+%
+The aggregated data contains identical information as the in situ data stores,
+it just has more of it, and it is assembled into one location.
+%
+The aggregate daemons are useful for performing online analysis or information
+visualization that needs to include information from multiple nodes.
+%
+%
+\par
+%
+SOSflow is not a publish-subscribe system in the traditional sense, but
+uses a more scalable push and pull model.
+%
+Everything sent into the system will automatically migrate to
+aggregation points unless it is explicitly tagged as being node-only.
+%
+Requests for information from SOSflow are ad hoc and the scope of the
+request is constrained by the location where the request is serviced:
+in situ queries are resolved against the in situ database, aggregate
+queries are resolved against the aggregate database.
+%
+If the node-only information is potentially useful for offline analysis
+or archival, the in situ data stores can be collected at the end of
+a job script, and their contents can be filtered for that node-only
+information, which can be simply concatenated together with the aggregate
+database[s] into a complete image of all data
+%
+All information in SOSflow is tagged with a globally unique identifier
+(GUID).
+%
+This allows SOSflow data to be mixed together while preserving its provenance
+and preventing data duplication or namespace collision.
+%
+% ----------------------------------------------------------------------------%
+\subsection{SOSflow Client Library}
+%
+Clients directly interface with the SOSflow runtime system by calling a 
+library of functions (libsos) through a standardized API.
+%
+All communication between the SOSflow library and daemon are transparent
+to users, they do not need to write any socket code or introduce any
+state or additional complexity to their own code.
+%
+%
+\par
+\todo[inline]{TABLE OF INIT/PACK/PUB API FUNCTION SIG.S W/DESCRIPTIONS.}
+%
+SOSflow forms its own communication channels, and does not interfere
+with or rely on any communication overlay formed by the application it is
+linked into.
+%
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{images/placeholder.jpg}
+\caption{SOSflow client library.}
+\label{fig_client_library}
+\end{figure}
+%
+Information sent through the libsos API is copied into internal data
+structures, and can be freed or destroyed by the user after the SOSflow
+API function returns.
+%
+Data provided to the API is published up to the in situ daemon with
+an explicit API call, allowing developers to control the frequency
+of interactions with the runtime environment.
+%
+It also allows the user to register callback functions that can be
+triggered and provided data by user-defined analytics function,
+creating an end-to-end system for both monitoring as well as feedback
+and control.
+%
+%
+\par
+%
+To maximize compatibility with extant HPC applications, the SOSflow client
+library is presently implemented in C99.
+%
+The use of C99 allows the library to be linked in with a wide variety of
+HPC application codes, performance tools, and operating environments.
+%
+There are various custom object types employed by the SOSflow API, and these
+custom types can add a layer of complexity when binding the full API to
+a language other than C or C++.
+%
+SOSflow provides a solution to this challenge by offering a "Simple SOS"
+(ssos) wrapper around the full client library, exposing an API that uses no
+custom types.
+%
+The ssos wrapper was used to build a native Python module for SOSflow.
+%
+Users can directly interact with the SOSflow runtime environment from
+within Python scripts, acting both as a source for data, but also a
+consumer of online query results.
+%
+SOSflow users can extend the utility of their applications using
+\textbf{numpy} for analytics and \textbf{pyplot} for information
+visualization, as a simple example.
+%
+HPC developers can capitalize on the ease of development provided by Python,
+using SOSflow to observe and react to online data from complex applications
+written in legacy languages and data models.
+%
+% ----------------------------------------------------------------------------%
+\subsection{SOSflow Data}
+%
+The primary concept around which SOSflow organizes information is the
+"publication handle" (pub).
+%
+Pubs provide a private namespace where many types and quantities of
+information can be stored as a key/value pair.
+%
+SOSflow automatically annotates values with a variety of metadata,
+including a GUID, timestamps, origin application, node id, etc.
+%
+This metadata is available in the persistent data store for online query
+and analysis.
+%
+SOSflow's metadata is useful for a variety of purposes:
+\begin{itemize}
+    \item Performance analysis
+    \item Provenance of captured values for detection of
+        source-specific patterns of behavior, failing
+        hardware, etc.
+    \item Interpolating values contributed from multiple
+        source applications or nodes
+    \item Re-examining data after it has been gathered, but
+        organizing the data by metrics other than those
+        originally used when it was gathered
+\end{itemize}
+%
+%
+\par
+%
+The full history of a value, including updates to that value, is maintained
+in the daemon's persistent data store.
+%
+When a key is re-used to store some new information that has not yet been
+transmitted to the in situ daemon, the client library enqueues it up as
+a snapshot of that value, preserving all associated metadata alongside the
+historical value.
+%
+The next time the client publishes to the daemon, the current and all
+enqueued historical values are transmitted.
+%
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{images/placeholder.jpg}
+\caption{SOSflow data store.}
+\label{fig_data_store}
+\end{figure}
+%
+SOSflow is built on a model of a global information space.
+%
+Aggregate data stores are guaranteed to provide eventual consistency with
+the data stores of the in situ daemons that are targeting them.
+%
+SOSflow's use of continuous but asynchronous movement of information through
+the runtime system does not allow for strict quality-of-service guarantees
+about the timeliness of information being available for analysis.
+%
+A parametric scaling study is included in this paper that demonstrates the
+performance that can reasonably be expected on a real-world HPC cluster.
+%
+%
+\par
+%
+SOSflow does not require the use of a domain-specific language when
+pushing values into its API.
+%
+Pubs are self-defining through use: When a new key is used to pack a value
+into a pub, the schema is automatically updated to reflect the name and the
+type of that value.
+%
+When the schema of a pub changes, the changes are automatically announced
+to the in situ daemon the next time the client publishes data to it.
+%
+Once processed and injected into the persistent data store, values and their
+metadata are accessible via standardized SQL queries.
+%
+SOSflow's online resolution of SQL queries provides a high-degree of
+programmability and online adaptivity to users.
+%
+Examples and further documentation of SOSflow's SQL schema are provided
+within the standard SOSflow repository.
+%
+%
+% ----------------------------------------------------------------------------%
+\subsection{SOSflow Analytics \& Feedback}
+%
+%
+\par
+%
+\todo[inline]{INSERT SOURCE CODE EXAMPLE W/CALLBACK REGISTRATION/TRIGGERING}
+%
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{images/placeholder.jpg}
+\caption{SOSflow analytics interface.}
+\label{fig_analytics_interface}
+\end{figure}
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  EOF
+%%%
