@@ -1,0 +1,11 @@
+\begin{thebibliography}{1}
+
+\bibitem{wood2016scalable}
+Chad Wood, Sudhanshu Sane, Daniel Ellsworth, Alfredo Gimenez, Kevin Huck, Todd
+  Gamblin, and Allen Malony.
+\newblock A scalable observation system for introspection and in situ
+  analytics.
+\newblock In {\em Proceedings of the 5th Workshop on Extreme-Scale Programming
+  Tools}, pages 42--49. IEEE Press, 2016.
+
+\end{thebibliography}

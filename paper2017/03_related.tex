@@ -1,0 +1,57 @@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related Work}
+%
+There is a long history of online monitoring systems for HPC environments.
+%
+Exclusively system-oriented monitoring platforms are limited to serving the
+needs of machine and site administrators.
+%
+System-oriented platforms focus narrowly on machine metrics such as bandwidth,
+queue depth, resource contention, power, and thermal measurements.
+%
+Application-oriented platforms are often focused on single purposes such as
+the aggregation of performance tool instrumentation, and lack the flexibility
+to truly extend the functionality of an HPC application.
+%
+%
+\par
+%
+\todo[inline]{FILL IN PRIOR WORK}
+%
+%
+\par
+%
+To the authors' knowledge, no application-oriented online monitoring systems
+exist that are feasible for deployment to modern architectures at large scale
+and can provide runtime interactivity, are programmable, and capable of
+serving purposes beyond simple migration of performance metrics.
+%
+SOSflow makes a novel contribution by synthesizing application and system
+monitoring perspectives into a holistic architecture.
+%
+SOSflow goes much further than merely interleaving two data sources, as it:
+%
+\begin{itemize}
+    \item Operates during the application runtime
+    \item Allows for local and global interactivity
+    \item Couples user-defined analytics with applications
+    \item Automatically archives data for offline analysis
+    \item Provides full-support for complex, loosely-coupled,
+        multi-component scientific workflows, as well as simple
+        single-binary applications        
+    \item Enables online query and feedback to both applications
+        and their execution environment
+    \item Is engineered to scale from single-node deployments
+        to future-scale clusters
+\end{itemize}
+%
+SOSflow is a fully-programmable system designed to be tailored to individual
+use-cases with a minimuim amount of additional development or effort.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%%  EOF
+%%%
