@@ -37,13 +37,14 @@ rm -rf sosd.* profile* start0000*
 # launch the aggregator
 # ${sos_cmd} -k 0 -r aggregator &
 #mpirun -np 1 --host n002 ${sos_cmd} -k 0 -r aggregator &
-srun -n 1 -c ${cpus_per_task} --nodelist=n002 ${sos_cmd} -k 0 -r aggregator &
+srun -n 1 -c 28 ${sos_cmd} -k 0 -r aggregator &
 #${sos_cmd} -k 0 -r aggregator &
 
 #sleep 8
 
 #mpirun -np ${app_ranks} -ppn ${app_ranks_per_node} -hosts n003,n004 ./main
-srun -n ${app_ranks} -c ${cpus_per_task} --nodelist=n003,n004 ./main
+#srun -n ${app_ranks} -c ${cpus_per_task} -nodelist=n003,n004 ./main
+srun -n ${app_ranks} -c ${cpus_per_task} ./main
 #gdb --args ./main
 #./main
 
