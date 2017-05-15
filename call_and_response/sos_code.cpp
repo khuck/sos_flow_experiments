@@ -216,6 +216,8 @@ void finalize(void) {
     if (finalized) return;
     // shutdown the daemon, if necessary
     if (_shutdown_daemon) {
+        // to make sure we have a clean shutdown, allow the queues to drain.
+        sleep(2);
         send_shutdown_message();
         // shouldn't be necessary, but sometimes the shutdown message is ignored?
         //fork_exec_sosd_shutdown();
@@ -228,5 +230,8 @@ void finalize(void) {
 void sample_value(std::string name, double value) {
   //std::cout << "Sending data : " << name << ": " << value << std::endl;
   SOS_pack(_sos_pub, name.c_str(), SOS_VAL_TYPE_DOUBLE, &value);
+}
+
+void flush_it(void) {
   SOS_publish(_sos_pub);
 }

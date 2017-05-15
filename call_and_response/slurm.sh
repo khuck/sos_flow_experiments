@@ -1,5 +1,5 @@
 #!/bin/bash -x
-#SBATCH --nodes=3 
+#SBATCH --nodes=33 
 #SBATCH --sockets-per-node=2 
 #SBATCH --cores-per-socket=14 
 #SBATCH --partition=defq 
@@ -13,11 +13,21 @@ export LD_LIBRARY_PATH=/cm/local/apps/gcc/6.1.0/lib64:$LD_LIBRARY_PATH
 hostname=`hostname`
 sosbin=/home/khuck/src/sos_flow/build-linux/bin
 cwd=`pwd`
-num_listeners=2
-app_ranks_per_node=1
-app_ranks=2
+num_listeners=32
+app_ranks_per_node=27
+app_ranks=864
 
-export sos_cmd="${sosbin}/sosd -l ${num_listeners} -a 1 -w ${cwd}"
+# export SOS_WORK=${cwd}
+export SOS_WORK=/tmp
+
+# Get the first node in the allocation
+nodes=`scontrol show hostname $SLURM_NODELIST | paste -d, -s`
+IFS=',' read -r rootnode othernodes <<< "$nodes"
+echo $rootnode
+echo $othernodes
+lastcore=27
+
+export sos_cmd="taskset -c ${lastcore} ${sosbin}/sosd -l ${num_listeners} -a 1 -w ${SOS_WORK}"
 if [ ${num_listeners} == 0 ] ; then
   export SOS_FORK_COMMAND="${sos_cmd} -k @LISTENER_RANK@ -r aggregator"
   export SOS_LISTENER_RANK_OFFSET=0
@@ -30,23 +40,27 @@ export SOS_FORK_SHUTDOWN="${sosbin}/sosd_stop"
 export SOS_CMD_PORT=22500
 export SOS_EVPATH_MEETUP=${cwd}
 
-killall -9 sosd
-rm -rf sosd.* profile* start0000*
-
-# launch the aggregator
-# ${sos_cmd} -k 0 -r aggregator &
-#mpirun -np 1 --host n002 ${sos_cmd} -k 0 -r aggregator &
-srun -n 1 -N 1 -c 28 --nodelist=${SLURMD_NODENAME} ${sos_cmd} -k 0 -r aggregator &
-#${sos_cmd} -k 0 -r aggregator &
-
+# kill anything that might be out there
+srun -n 3 -N 3 killall -9 sosd main
 sleep 2
 
-#mpirun -np ${app_ranks} -ppn ${app_ranks_per_node} -hosts n003,n004 ./main
-#srun -n ${app_ranks} -c ${cpus_per_task} -nodelist=n003,n004 ./main
-srun -n ${app_ranks} -N ${app_ranks_per_node} --exclude=${SLURMD_NODENAME} ./main
-#gdb --args ./main
-#./main
+# clean anything that might be out there
+rm -rf ${SOS_WORK}/sosd.* profile* ${SOS_WORK}/start0000*
+sleep 2
 
-#mpirun -np 3 -ppn 1 killall -9 sosd
-#mpirun -np 3 -ppn 1 ${sosbin}/sosd_stop
+# launch our aggregator(s)
+srun -n 1 -N 1 --nodelist=${rootnode} ${sos_cmd} -k 0 -r aggregator &
+sleep 2
+
+# launch the application
+srun -n ${app_ranks} -N ${num_listeners} --nodelist=${othernodes} ./main
+sleep 2
+
+# get our files
+srun -n 1 -N 1 --nodelist=${rootnode} ${cwd}/cleanup.sh
+srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${cwd}/cleanup.sh
+sleep 2
+
+# how did we do?
+export SOS_WORK=${cwd}
 ${sosbin}/showdb

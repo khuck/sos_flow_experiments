@@ -117,18 +117,21 @@ void main_loop(void) {
   for (i = 0 ; i < max_iterations ; i++ ) {
     /* Ask SOS for update */
     check_for_balance(i);
-    /* make a timer */
-    simple_timer t("Iteration");
     /* output status */
     if (_commrank == 0) {
       std::cout << "iteration " << i << std::endl; fflush(stdout);
     }
     /* wait for everyone to start at the same time */
     MPI_Barrier(MPI_COMM_WORLD);
-    /* do work */
-    total += do_work(i);
+    {
+      /* make a timer */
+      simple_timer t("Iteration");
+      /* do work */
+      total += do_work(i);
+    }
     /* output some system data */
     send_sos_system_data();
+    flush_it();
   }
   /* wait for everyone to finish at the same time */
   MPI_Barrier(MPI_COMM_WORLD);
