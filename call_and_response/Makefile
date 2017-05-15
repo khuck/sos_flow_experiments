@@ -1,6 +1,4 @@
 include Makefile.inc
-CC=mpicc
-CXX=mpicxx
 RM=rm -f
 CPPFLAGS=-g -I$(SOSDIR)/include -pthread -std=c++11
 LDFLAGS=-g -lpthread -std=c++11

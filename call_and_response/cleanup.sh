@@ -1,3 +1,3 @@
 #!/bin/bash 
 cwd=`pwd`
-mv /tmp/sosd.* ${cwd}
+mv ${SOS_WORK}/sosd.* ${cwd}
