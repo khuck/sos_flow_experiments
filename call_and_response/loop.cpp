@@ -4,7 +4,10 @@
 
 #define MATRIX_SIZE 512
 const int max_iterations = 10;
-const double increment_divisor = 5.0;
+const double increment_divisor = 0.1;
+int NRA = MATRIX_SIZE; /* number of rows in matrix A */
+int NCA = MATRIX_SIZE; /* number of columns in matrix A */
+int NCB = MATRIX_SIZE; /* number of columns in matrix B */
 
 double** allocateMatrix(int rows, int cols) {
   int i;
@@ -56,21 +59,22 @@ void compute(double **a, double **b, double **c, int rows_a, int cols_a, int col
   }   /*** End of parallel region ***/
 }
 
-#define increment(_foo,_i) (std::min((_foo),int((_foo)*((_i)/increment_divisor))))
+#define increment int((MATRIX_SIZE)*increment_divisor)
 
 double do_work(int i) {
   double **a,           /* matrix A to be multiplied */
   **b,           /* matrix B to be multiplied */
   **c;           /* result matrix C */
 
-  int NRA = MATRIX_SIZE; /* number of rows in matrix A */
-  int NCA = MATRIX_SIZE; /* number of columns in matrix A */
-  int NCB = MATRIX_SIZE; /* number of columns in matrix B */
-  // upper ranks get 50% more work.
-  if ((!_balanced) && (_commrank < (_commsize / 2))) {
-    NRA = NRA + increment(NRA,i);
-    NCA = NCA + increment(NCA,i);
-    NCB = NCB + increment(NCB,i);
+  // upper ranks get an increase in work each iteration
+  if ((i > 0) && (!_balanced) && (_commrank < (_commsize / 2))) {
+    NRA = std::min(MATRIX_SIZE*2,(NRA + increment));
+    NCA = std::min(MATRIX_SIZE*2,(NCA + increment));
+    NCB = std::min(MATRIX_SIZE*2,(NCB + increment));
+  } else {
+    NRA = MATRIX_SIZE;
+    NCA = MATRIX_SIZE;
+    NCB = MATRIX_SIZE;
   }
   std::cout << "NRA: " << NRA << std::endl;
 
@@ -103,7 +107,7 @@ void main_loop(void) {
     /* wait for everyone to start at the same time */
     MPI_Barrier(MPI_COMM_WORLD);
     /* make the app balanced */
-    if (i == max_iterations/2) _balanced=true;
+    if (i >= max_iterations/2) _balanced=true;
     /* make a timer */
     simple_timer t("Iteration");
     /* output status */

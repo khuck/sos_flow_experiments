@@ -1,3 +1,4 @@
 *.o
 main
 sosd.0*
+*.d

@@ -12,8 +12,8 @@ hostname=`hostname`
 sosbin=/home/khuck/src/sos_flow/build-linux/bin
 cwd=`pwd`
 num_listeners=2
-app_ranks_per_node=2
-app_ranks=4
+app_ranks_per_node=1
+app_ranks=2
 
 export sos_cmd="${sosbin}/sosd -l ${num_listeners} -a 1 -w ${cwd}"
 if [ ${num_listeners} == 0 ] ; then
