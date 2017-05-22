@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2017.5.11)  14 MAY 2017 17:41
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2017.5.11)  22 MAY 2017 11:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -568,7 +568,7 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-(./01_authors_abstract.tex
+(./00_title_authors.tex
 LaTeX Font Info:    Try loading font information for OMS+ptm on input line 21.
 
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/omsptm.fd
@@ -577,7 +577,7 @@ File: omsptm.fd
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 21.
 )
-(./02_intro_motive.tex
+(./01_intro_motive.tex
 <images/sosflow_masthead.png, id=4, 780.9175pt x 120.45pt>
 File: images/sosflow_masthead.png Graphic file (type png)
 
@@ -599,7 +599,7 @@ Package pdftex.def Info: images/placeholder.jpg used on input line 42.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-) (./03_related.tex [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
+) (./02_related.tex [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
 
  <./images/sosflow_masthead.png> <./images/placeholder.jpg>]
@@ -607,7 +607,7 @@ Underfull \hbox (badness 4279) in paragraph at lines 41--44
 []\OT1/ptm/m/n/10 Provides full-support for com-plex, loosely-coupled,
  []
 
-) (./04_architecture.tex
+) (./03_architecture.tex
 File: images/placeholder.jpg Graphic file (type jpg)
  <use images/placeholder.jpg>
 Package pdftex.def Info: images/placeholder.jpg used on input line 48.
@@ -635,12 +635,12 @@ File: images/placeholder.jpg Graphic file (type jpg)
 Package pdftex.def Info: images/placeholder.jpg used on input line 336.
 (pdftex.def)             Requested size: 252.0pt x 251.9961pt.
 )
-(./05_implementation.tex) (./06_results.tex) (./07_conclusion.tex
-Underfull \hbox (badness 1783) in paragraph at lines 35--39
+(./04_experiments.tex) (./05_results.tex) (./06_conclusion.tex
+Underfull \hbox (badness 1783) in paragraph at lines 33--37
 []\OT1/ptm/m/n/10 The re-search re-port was sup-ported by a grant (DE-
  []
 
-) (./bare_conf.bbl [4])
+[4]) (./bare_conf.bbl)
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -657,7 +657,7 @@ Before submitting the final camera ready copy, remember to:
 ] (./bare_conf.aux) ) 
 Here is how much of TeX's memory you used:
  13192 strings out of 493029
- 246200 string characters out of 6136234
+ 246182 string characters out of 6136234
  302658 words of memory out of 5000000
  16459 multiletter control sequences out of 15000+600000
  35250 words of font info for 64 fonts, out of 8000000 for 9000
@@ -670,7 +670,7 @@ texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-d
 ist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist/fonts/type
 1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utm
 ri8a.pfb>
-Output written on bare_conf.pdf (5 pages, 253331 bytes).
+Output written on bare_conf.pdf (5 pages, 253411 bytes).
 PDF statistics:
  52 PDF objects out of 1000 (max. 8388607)
  35 compressed objects within 1 object stream
