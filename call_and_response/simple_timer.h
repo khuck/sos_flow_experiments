@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <sstream>
 
 class simple_timer {
     const double nanoseconds  = 1.0e9;
@@ -16,6 +17,10 @@ class simple_timer {
     ~simple_timer() {
       std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - start);
       sample_value(_name, time_span.count() * seconds);
-      //std::cout << _name << ": " << time_span.count() * seconds << std::endl;
+      /*
+      std::stringstream ss;
+      ss << _commrank << ":" << _name << ": " << time_span.count() * seconds << std::endl;
+      std::cout << ss.str(); fflush(stdout);
+      */
     }
 };

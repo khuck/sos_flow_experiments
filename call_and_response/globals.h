@@ -28,4 +28,5 @@ void sample_value(std::string, double);
 void send_sos_system_data(void);
 void main_loop(void);
 void setup_system_data(void);
+void flush_it(void);
 

@@ -25,15 +25,14 @@ void do_fork(std::string forkCommand) {
 
 void fork_exec_sosd_shutdown(void) {
     // first, figure out who should fork a daemon on this node
-    int i, rank;
-    PMPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    if (rank == _daemon_rank) {
+    int i;
+    if (_commrank == _daemon_rank) {
         int pid = vfork();
         if (pid == 0) {
             char* forkCommand;
             forkCommand = getenv ("SOS_FORK_SHUTDOWN");
             if (forkCommand) {
-                std::cout << "Rank " << rank << " stopping SOS daemon(s): " << forkCommand << std::endl;
+                std::cout << "Rank " << _commrank << " stopping SOS daemon(s): " << forkCommand << std::endl;
                 std::string foo(forkCommand);
                 do_fork(foo);
             } else {
@@ -48,12 +47,11 @@ void fork_exec_sosd_shutdown(void) {
 }
 
 void send_shutdown_message(void) {
-    int i, rank;
-    PMPI_Comm_rank(MPI_COMM_WORLD,&rank);
+    int i;
     SOS_buffer     *buffer;
     SOS_msg_header  header;
     int offset;
-    if (rank == _daemon_rank) {
+    if (_commrank == _daemon_rank) {
     	setenv("SOS_SHUTDOWN", "1", 1);
 
         SOS_buffer_init(_runtime, &buffer);
@@ -86,18 +84,16 @@ void send_shutdown_message(void) {
 
 void fork_exec_sosd(void) {
     // first, figure out who should fork a daemon on this node
-    int i, rank, size;
-    PMPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    PMPI_Comm_size(MPI_COMM_WORLD,&size);
+    int i;
     // get my hostname
     const int hostlength = 128;
     char hostname[hostlength] = {0};
     gethostname(hostname, sizeof(char)*hostlength);
     std::cout << hostname << std::endl;
     // make array for all hostnames
-    char * allhostnames = (char*)calloc(hostlength*size, sizeof(char));
+    char * allhostnames = (char*)calloc(hostlength*_commsize, sizeof(char));
     // copy my name into the big array
-    char * host_index = allhostnames + (hostlength * rank);
+    char * host_index = allhostnames + (hostlength * _commrank);
     strncpy(host_index, hostname, hostlength);
     // get all hostnames
     PMPI_Allgather(hostname, hostlength, MPI_CHAR, allhostnames, 
@@ -106,15 +102,17 @@ void fork_exec_sosd(void) {
     // point to the head of the array
     host_index = allhostnames;
     // find the lowest rank with my hostname
-    for (i = 0 ; i < size ; i++) {
-        //printf("%d:%d comparing '%s' to '%s'\n", rank, size, hostname, host_index);
+    for (i = 0 ; i < _commsize ; i++) {
+        //printf("%d:%d comparing '%s' to '%s'\n", _commrank, _commsize, hostname, host_index);
         if (strncmp(hostname, host_index, hostlength) == 0) {
             _daemon_rank = i;
+            break;
         }
         host_index = host_index + hostlength;
     }
     // fork the daemon
-    if (rank == _daemon_rank) {
+    if (_commrank == _daemon_rank) {
+        _shutdown_daemon = true;
         int pid = vfork();
         if (pid == 0) {
             char* forkCommand = NULL;
@@ -133,7 +131,7 @@ void fork_exec_sosd(void) {
                 if (index != std::string::npos) {
                     if (ranks_per_node) {
                         int rpn = atoi(ranks_per_node);
-                        int listener_rank = rank / rpn;
+                        int listener_rank = _commrank / rpn;
                         if(offset) {
                             int off = atoi(offset);
                             listener_rank = listener_rank + off;
@@ -143,9 +141,8 @@ void fork_exec_sosd(void) {
                         custom_command.replace(index,15,ss.str());
                     }
                 }
-                std::cout << "Rank " << rank << " spawning SOS daemon(s): " << custom_command << std::endl;
+                std::cout << "Rank " << _commrank << " spawning SOS daemon(s): " << custom_command << std::endl;
                 do_fork(custom_command);
-                _shutdown_daemon = true;
             } else {
                 std::cerr << "Please set the SOS_FORK_COMMAND environment variable to spawn SOS in the background." << std::endl;
             }
@@ -164,7 +161,7 @@ void initialize(int * argc, char *** argv) {
         //printf("init() trying to connect...\n");
         SOS_init(argc, argv, &_runtime, SOS_ROLE_CLIENT, SOS_RECEIVES_NO_FEEDBACK, NULL);
         if(_runtime == NULL) {
-            printf("%d Unable to connect to SOS daemon. Spawning...\n", _commrank);
+            printf("%d Unable to connect to SOS daemon. Determining whether to spawn...\n", _commrank);
             fork_exec_sosd();
         }
         int repeat = 10;
@@ -219,7 +216,9 @@ void finalize(void) {
     if (finalized) return;
     // shutdown the daemon, if necessary
     if (_shutdown_daemon) {
-        // send_shutdown_message();
+        // to make sure we have a clean shutdown, allow the queues to drain.
+        sleep(2);
+        send_shutdown_message();
         // shouldn't be necessary, but sometimes the shutdown message is ignored?
         //fork_exec_sosd_shutdown();
     }
@@ -231,5 +230,8 @@ void finalize(void) {
 void sample_value(std::string name, double value) {
   //std::cout << "Sending data : " << name << ": " << value << std::endl;
   SOS_pack(_sos_pub, name.c_str(), SOS_VAL_TYPE_DOUBLE, &value);
+}
+
+void flush_it(void) {
   SOS_publish(_sos_pub);
 }
