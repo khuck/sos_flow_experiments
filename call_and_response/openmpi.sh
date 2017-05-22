@@ -20,7 +20,7 @@ export SOS_FORK_SHUTDOWN="${sosbin}/sosd_stop"
 export SOS_CMD_PORT=22500
 export SOS_EVPATH_MEETUP=${cwd}
 
-killall -9 sosd
+killall -9 sosd mpirun main python
 rm -rf sosd.* profile* start0000*
 
 # launch the aggregator
@@ -29,6 +29,9 @@ rm -rf sosd.* profile* start0000*
 
 sleep 2
 
-mpirun -np ${app_ranks} --map-by core ./main
+mpirun -np ${app_ranks} --map-by core ./main &
 
-${sosbin}/showdb
+sleep 2
+python ./example.py
+
+# ${sosbin}/showdb
