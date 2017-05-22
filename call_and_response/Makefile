@@ -29,4 +29,6 @@ clean:
 distclean: clean
 	$(RM) *~ $(DEPS)
 
+ifneq ("$(wildcard $(DEPS))","")
 include $(DEPS)
+endif
