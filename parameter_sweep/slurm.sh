@@ -67,7 +67,10 @@ launch_servers() {
   sleep 2
 
   # launch the listeners
-  cmd="srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${sos_cmd} -k 1 -r listener"
+  #gperf="--export=LD_PRELOAD=/usr/local/packages/gperftools/2.5/lib/libprofiler.so --export=CPUPROFILE=${cwd}/prof.out"
+  export PATH=$PATH:$HOME/src/tau2/x86_64/bin
+  gperf="tau_exec -T serial,pthread -ebs"
+  cmd="srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${gperf} ${sos_cmd} -k 1 -r listener"
   echo $cmd
   $cmd &
   sleep 2
@@ -111,10 +114,12 @@ echo "DATAOUT, 'database', 'ranks', 'pub size', 'delay', 'total size', 'min late
 cmd_base="--nodelist=${othernodes} ${sosbin}/demo_app"
 #ms_per_minute=60000000
 ms_per_minute=6000000
-for c in {1..28} ; do
-#for c in {1..4} ; do
-  for p in 1 64 1024 16384 ; do
-    for d in 1000000 100000 10000 ; do
+#for c in {1..28} ; do
+for c in {9..9} ; do
+  #for p in 1 64 1024 16384 ; do
+  for p in 16384 ; do
+    #for d in 1000000 100000 10000 ; do
+    for d in 10000 ; do
       fresh_start
       launch_servers
       m=$(expr $(expr ${ms_per_minute} / ${d}) \* ${p})
