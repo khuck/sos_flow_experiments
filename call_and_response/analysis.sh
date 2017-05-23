@@ -15,9 +15,9 @@ source /home/khuck/src/sos_flow/hosts/linux/hpc.sh
 hostname=`hostname`
 sosbin=/home/khuck/src/sos_flow/build-linux/bin
 cwd=`pwd`
-num_listeners=53
-app_ranks_per_node=28
-app_ranks=1484
+num_listeners=0
+app_ranks_per_node=1
+app_ranks=1
 
 # export SOS_WORK=${cwd}
 export SOS_WORK=/tmp
@@ -46,24 +46,8 @@ export SOS_EVPATH_MEETUP=${cwd}
 srun -n 3 -N 3 killall -9 sosd main
 sleep 2
 
-# clean anything that might be out there
-rm -rf ${SOS_WORK}/sosd.* profile* ${SOS_WORK}/start0000*
-sleep 2
-
 # launch our aggregator(s)
 srun -n 1 -N 1 --nodelist=${rootnode} ${sos_cmd} -k 0 -r aggregator &
-srun -n 1 -N 1 --nodelist=${rootnode} python ${cwd}/example.py &
+srun -n 1 -N 1 --nodelist=${rootnode} python ${cwd}/example.py
 sleep 2
 
-# launch the application
-srun -n ${app_ranks} -N ${num_listeners} --nodelist=${othernodes} ./main
-sleep 2
-
-# get our files
-srun -n 1 -N 1 --nodelist=${rootnode} ${cwd}/cleanup.sh
-srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${cwd}/cleanup.sh
-sleep 2
-
-# how did we do?
-export SOS_WORK=${cwd}
-${sosbin}/showdb
