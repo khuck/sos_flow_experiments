@@ -1,0 +1,6 @@
+#!/bin/bash -e
+set -x 
+mpicc -g -c reader2.c -I/home/khuck/src/chaos/adios/ADIOS-gcc/include -Wconversion
+mpicc -g -c diag2.c -I/home/khuck/src/chaos/adios/ADIOS-gcc/include -Wconversion
+mpicc -g -c his2d.c -I/home/khuck/src/chaos/adios/ADIOS-gcc/include -Wconversion
+mpicc -g -o reader2 reader2.o his2d.o diag2.o `tau_cc.sh -tau:showlibs` `/home/khuck/src/chaos/adios/ADIOS-gcc/bin/adios_config -l` -lenet

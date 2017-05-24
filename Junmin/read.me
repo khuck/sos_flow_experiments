@@ -1,0 +1,26 @@
+work Flow (ran on edison.nersc.gov):
+:: fortran server (source code in ImpactTv1bestAdios/)  generates particles for 1000 time steps, uses flexpath to stage.
+:: c reader reads data for each timestep, and do some processing. Then reads next timestep.
+
+Question:
+:: it is observed that adios_release_step and adios_advance_step takes good amount of time.
+would like to know if there is any improvement can be made.
+
+
+Detail:
+1) compile the fortran server at ImpactTv1betaAdios/ executable is called xmain
+   the adios related functions are in Contrl/adiosUtil.f90 
+      
+2) setup your test dir (MediumRun is one of my test dir)
+
+3) compile readerFull/ 
+
+3) link to the xmain from ImpactTv1bestAdios/, and reader2 from readerFull/
+
+4) see test script run.* in MediumRun.
+   it varies depents on how many cores used for reader 
+ 
+   ImpactT.in is the setup script for fortran server. It specifies the cores, and timesteps, and number of particles.
+   in case of MediumRun, cores of ImpactT.in is 32x16, timestep = 1000, and 32million particles
+
+5) a few files, fort.* will generate by fortran. Can ignore them

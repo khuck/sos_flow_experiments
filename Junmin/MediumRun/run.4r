@@ -1,0 +1,58 @@
+#!/bin/bash -l
+
+#SBATCH -p regular
+
+#SBATCH -N 36
+#SBATCH -t 00:60:00 
+#SBATCH -J edison.both
+#SBATCH -o both.out
+
+pwd
+
+source ~/edison.setenv.nompi
+#module load ipm
+module load perftools
+
+#set PAT_RT_EXPFILE_MAX >= 1024
+
+more /proc/self/status
+
+setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/global/u1/j/junmin/edison/flexpath/install/lib/
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/global/u1/j/junmin/edison/flexpath/install/lib/
+
+printenv LD_LIBRARY_PATH
+
+date
+
+export xmainOut="xmain.out" 
+export readOut="read2.out"
+
+#srun -N 1 -n 16 ./xmain   > xmain.out 2>&1 &
+#srun -N 1 -n 16 ./reader 5 x z > read.out  2>&1   
+
+srun -N 32 -n 512 ./xmain   > ${xmainOut} 2>&1 &
+srun -N 1 -n 4 ../readerFull/reader2 5 x z > ${readOut}  2>&1   
+
+
+export today=`date | awk '{print $2$3$6}' `
+export logDir=${today}-32m-4r
+mkdir ${logDir}
+
+rm -f ${logDir}/*
+
+mv hist* ${logDir}
+mv ${xmainOut} ${logDir}
+mv ${readOut} ${logDir}
+mv both.out ${logDir}
+cp Impact*in ${logDir}
+
+##
+## make sure ${logDir} has no slash in it. Will cause error with sed
+##
+#./createDrawScript.sh ${logDir}
+
+#mkdir ${logDir}/png
+
+#sbatch draw.run
+
+date
