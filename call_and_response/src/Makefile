@@ -14,6 +14,7 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CXX) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LDLIBS) 
+	cp $(TARGET) ../.
 
 %.o %.d : %.cpp $(HDRS)
 
