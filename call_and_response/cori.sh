@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --nodes=2 
-#SBATCH -t 1:00:00
+#SBATCH -t 0:05:00
 #SBATCH -A m1881
 #SBATCH -C haswell
 #SBATCH --gres=craynetwork:2
-#SBATCH -p regular
+#SBATCH -p debug
 #######   #SBATCH --qos=interactive
 
 cd ${SCRATCH}/call_and_response
@@ -64,6 +64,14 @@ launch_servers() {
   echo $cmd
   $cmd &
   sleep 5
+
+  # launch the listeners
+  if [ ${num_listeners} != 0 ] ; then
+    cmd="srun -u -n ${num_listeners} -N ${num_listeners} -c 4 --hint=multithread --nodelist=${othernodes} --gres=craynetwork:1 --mem=25600 ${sos_cmd} -k 1 -r listener"
+    echo $cmd
+    $cmd &
+    sleep 5
+  fi
 }
 
 fresh_start
@@ -72,12 +80,13 @@ launch_servers
 cmd="srun -u -n ${app_ranks} -N ${num_listeners} --nodelist=${othernodes} -c 2 --hint=multithread --gres=craynetwork:1 --mem=25600 ./main"
 echo $cmd
 ${cmd}
+echo "Exited the application"
 sleep 2
 
 # get our files
-srun -n 1 -N 1 --nodelist=${rootnode} ${cwd}/cleanup.sh
-srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${cwd}/cleanup.sh
-sleep 2
+#srun -n 1 -N 1 --nodelist=${rootnode} ${cwd}/cleanup.sh
+#srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${cwd}/cleanup.sh
+#sleep 2
 
 # how did we do?
 export SOS_WORK=${cwd}
