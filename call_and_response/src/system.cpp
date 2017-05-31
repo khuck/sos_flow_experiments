@@ -23,6 +23,7 @@ bool parse_proc_self_status(void) {
     while ( fgets( line, 4096, f)) {
         string tmp(line);
         if (!tmp.compare(0,prefix.size(),prefix)) {
+        /*
             const std::regex separator(":");
             std::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
             std::sregex_token_iterator end;
@@ -34,6 +35,15 @@ bool parse_proc_self_status(void) {
                 string mname("status:" + name);
                 if (pEnd) { sample_value(mname, d1); }
             }
+            */
+            char * str = strdup(tmp.c_str());
+            char * name = strtok(str, ":");
+            if (name == NULL) continue;
+            char * value = strtok(NULL, ":");
+            if (value == NULL) continue;
+            double d1 = strtod (value, NULL);
+            string mname("status:" + string(name));
+            sample_value(mname, d1);
         }
     }
     fclose(f);
