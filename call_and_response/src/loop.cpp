@@ -2,7 +2,7 @@
 #include "simple_timer.h"
 #include <algorithm>
 
-#define MATRIX_SIZE 512
+#define MATRIX_SIZE 1024
 const int max_iterations = 50;
 const double increment_divisor = 1.0/max_iterations;
 int NRA = MATRIX_SIZE; /* number of rows in matrix A */

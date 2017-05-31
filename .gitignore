@@ -2,3 +2,5 @@
 main
 sosd.0*
 *.d
+*.mod
+xmain
