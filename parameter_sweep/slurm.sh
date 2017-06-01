@@ -29,9 +29,10 @@ nodes=`scontrol show hostname $SLURM_NODELIST | paste -d, -s`
 IFS=',' read -r rootnode othernodes <<< "$nodes"
 echo $rootnode
 echo $othernodes
-lastcore=25-27
+lastcore=26-27
 
-export sos_cmd="taskset -c ${lastcore} ${sosbin}/sosd -l ${num_listeners} -a 1 -w ${SOS_WORK}"
+#export sos_cmd="taskset -c ${lastcore} ${sosbin}/sosd -l ${num_listeners} -a 1 -w ${SOS_WORK}"
+export sos_cmd="${sosbin}/sosd -l ${num_listeners} -a 1 -w ${SOS_WORK}"
 if [ ${num_listeners} == 0 ] ; then
   export SOS_FORK_COMMAND="${sos_cmd} -k @LISTENER_RANK@ -r aggregator"
   export SOS_LISTENER_RANK_OFFSET=0
@@ -49,14 +50,14 @@ fresh_start() {
   cmd="srun -n ${SLURM_NNODES} -N ${SLURM_NNODES} killall -9 sosd main"
   echo $cmd
   $cmd
-  sleep 2
+  #sleep 2
 
   # clean anything that might be out there
   export SOS_WORK=${mytmp}
   cmd="srun -n ${SLURM_NNODES} -N ${SLURM_NNODES} rm -rf ${SOS_WORK}/sosd.* profile* ${SOS_WORK}/start0000*"
   echo $cmd
   $cmd
-  sleep 2
+  #sleep 2
 }
 
 launch_servers() {
@@ -67,12 +68,9 @@ launch_servers() {
   sleep 2
 
   # launch the listeners
-  #gperf="--export=LD_PRELOAD=/usr/local/packages/gperftools/2.5/lib/libprofiler.so --export=CPUPROFILE=${cwd}/prof.out"
-  export PATH=$PATH:$HOME/src/tau2/x86_64/bin
-  gperf="tau_exec -T serial,pthread -ebs"
-  cmd="srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${gperf} ${sos_cmd} -k 1 -r listener"
+  cmd="srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${sos_cmd} -k 1 -r listener"
   echo $cmd
-  $cmd &
+  #$cmd &
   sleep 2
 }
 
@@ -86,17 +84,19 @@ stop_servers() {
   # get our files
   srun -n 1 -N 1 --nodelist=${rootnode} ${cwd}/../call_and_response/cleanup.sh
   srun -n ${num_listeners} -N ${num_listeners} --nodelist=${othernodes} ${cwd}/../call_and_response/cleanup.sh
-  sleep 2
+  #sleep 2
 
   export SOS_WORK=${cwd}
 
      for db in $SOS_WORK/sosd.*.db ; do
        SQL="SELECT 'DATAOUT', '${db}', '${1}', '${2}', '${3}', '${4}', "
-       SQL="$SQL MAX(rowid) AS entry_count,"
+       SQL="$SQL COUNT(guid) AS entry_count,"
        SQL="$SQL MIN(time_recv - time_send) AS min_latency,"
        SQL="$SQL AVG(time_recv - time_send) AS avg_latency," 
-       SQL="$SQL MAX(time_recv - time_send) AS max_latency "
-       SQL="$SQL FROM tblVals;"
+       SQL="$SQL MAX(time_recv - time_send) AS max_latency, "
+       SQL="$SQL AVG(((time_recv - time_send) - sub.a) * ((time_recv - time_send) - sub.a)) AS variance"
+       SQL="$SQL FROM tblVals,"
+       SQL="$SQL (select avg(time_recv - time_send) as a from tblvals) as sub;"
      #
        #
        sqlite3 -separator ", " $db "$SQL" >> latencies.txt
@@ -104,28 +104,31 @@ stop_servers() {
     done
 }
 
-echo "DATAOUT, 'database', 'ranks', 'pub size', 'delay', 'total size', 'min latency', 'mean latency', 'max latency'" > latencies.txt
+#echo "DATAOUT, 'database', 'ranks', 'pub size', 'delay', 'total size', 'count', 'min latency', 'mean latency', 'max latency', 'variance latency'" > latencies.txt
 
 # launch the applications
 # -i pack/publish iterations before delay
 # -d delay (milliseconds)
 # -p pub size 
 # -m total value 
+echo $LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/cm/local/apps/gcc/6.1.0/lib64:$LD_LIBRARY_PATH
+ldd ${sosbin}/demo_app
 cmd_base="--nodelist=${othernodes} ${sosbin}/demo_app"
 #ms_per_minute=60000000
 ms_per_minute=6000000
-#for c in {1..28} ; do
-for c in {9..9} ; do
-  #for p in 1 64 1024 16384 ; do
-  for p in 16384 ; do
-    #for d in 1000000 100000 10000 ; do
-    for d in 10000 ; do
+for c in {28..28} ; do
+#for c in {9..9} ; do
+  for p in 1 64 128 192 256 320 384 448 512 ; do
+  #for p in 1 ; do
+    for d in 1000000 100000 10000 ; do
+    #for d in 10000 ; do
       fresh_start
       launch_servers
       m=$(expr $(expr ${ms_per_minute} / ${d}) \* ${p})
       cmd="srun -n ${c} -N ${num_listeners} ${cmd_base} -i 1 -d ${d} -p ${p} -m ${m}"
       echo $cmd
-      ${cmd} >& /dev/null
+      time ${cmd} > /dev/null
       stop_servers ${c} ${p} ${d} ${m}
     done
   done
