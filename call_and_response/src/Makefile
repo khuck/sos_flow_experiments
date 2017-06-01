@@ -12,6 +12,8 @@ TARGET=main
 
 all: $(TARGET)
 
+$(OBJS): $(DEPS)
+
 $(TARGET): $(OBJS)
 	$(CXX) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LDLIBS) 
 	cp $(TARGET) ../.
