@@ -4,3 +4,5 @@ sosd.0*
 *.d
 *.mod
 xmain
+reader2
+slurm*.out
