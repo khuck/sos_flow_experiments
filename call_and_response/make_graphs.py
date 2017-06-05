@@ -84,11 +84,12 @@ def get_ranks(c):
         return ranks
 
 def get_nodes(c):
-    sql_statement = ("select distinct node_id from tblpubs order by comm_rank;")
+    sql_statement = ("select distinct node_id, min(comm_rank) from tblpubs group by node_id order by comm_rank;")
     #print("Executing query")
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     nodes = np.array([x[0] for x in all_rows])
+    ranks = np.array([x[1] for x in all_rows])
     nodelen = len(nodes)
     if nodelen > 10:
         smallnodes = [0]
@@ -99,11 +100,13 @@ def get_nodes(c):
             smallnodes.append(candidate)
         smallnodes.append(int(nodelen-1))
         smallnodes2 = []
-        for index in smallnodes:
+        smallranks2 = []
+        for index in sorted(smallnodes):
             smallnodes2.append(nodes[index])
-        return np.array(sorted(smallnodes2))
+            smallranks2.append(ranks[index])
+        return np.array(smallnodes2), np.array(smallranks2)
     else:
-        return nodes
+        return nodes,ranks
 
 def get_min_timestamp(c):
     global min_timestamp
@@ -115,18 +118,25 @@ def get_min_timestamp(c):
     min_timestamp = ts[0]
     print("min timestamp: ", min_timestamp)
 
-def do_chart(subplot, c, ranks, group_column, metric, plot_title, y_label, graph, axes):
+def do_chart(subplot, c, ranks, ranks2, group_column, metric, plot_title, y_label, graph, axes):
     global min_timestamp
     newplot = False
     if not graph:
         newplot = True
         graph = {}
+    index = 0
     for r in ranks:
-        sql_statement = ("SELECT tbldata.name, tblvals.val, tblvals.time_pack, tblpubs.comm_rank FROM tblvals INNER JOIN tbldata ON tblvals.guid = tbldata.guid INNER JOIN tblpubs ON tblpubs.guid = tbldata.pub_guid WHERE tblvals.guid IN (SELECT guid FROM tbldata WHERE tbldata.name LIKE '" + metric + "') AND tblpubs." + group_column)
+        sql_statement = ("SELECT distinct tbldata.name, tblvals.val, tblvals.time_pack, tblpubs.comm_rank FROM tblvals INNER JOIN tbldata ON tblvals.guid = tbldata.guid INNER JOIN tblpubs ON tblpubs.guid = tbldata.pub_guid WHERE tblvals.guid IN (SELECT guid FROM tbldata WHERE tbldata.name LIKE '" + metric + "') AND tblpubs." + group_column)
+        """
         if isinstance(r, int):
             sql_statement = (sql_statement + " = " + str(r) + " order by tblvals.time_pack;")
         else:
             sql_statement = (sql_statement + " like '" + r + "' order by tblvals.time_pack;")
+        """
+        if ranks2 == None:
+            sql_statement = (sql_statement + " = " + str(r) + " order by tblvals.time_pack;")
+        else:
+            sql_statement = (sql_statement + " = " + str(ranks2[index]) + " order by tblvals.time_pack;")
 
         #params = [metric,r]
         print "Executing query: ", sql_statement,
@@ -161,6 +171,7 @@ def do_chart(subplot, c, ranks, group_column, metric, plot_title, y_label, graph
             graph[r].set_data(pack_time, metric_values)
             axes.relim()        # Recalculate limits
             axes.autoscale_view(True,True,True) #Autoscale
+        index = index + 1
     return graph,axes
 
 def do_derived_chart(subplot, c, ranks, group_column, metric1, metric2, plot_title, y_label, graph, axes):
@@ -222,15 +233,15 @@ def do_derived_chart(subplot, c, ranks, group_column, metric1, metric2, plot_tit
         pl.draw()
     return graph,axes
 
-def docharts(c,nodes,ranks):
+def docharts(c,nodes,noderanks,ranks):
     # rows, columns, figure number for subplot value
-    graphs[0],axises[0] = do_chart(321, c, ranks, "comm_rank", "Iteration","Time per iteration","Time", graphs[0], axises[0])
-    graphs[1],axises[1] = do_chart(322, c, nodes, "node_id", "CPU System%","CPU System","CPU Utilization (%)", graphs[1], axises[1])
+    graphs[0],axises[0] = do_chart(321, c, ranks, None, "comm_rank", "Iteration","Time per iteration","Time", graphs[0], axises[0])
+    graphs[1],axises[1] = do_chart(322, c, nodes, noderanks, "comm_rank", "CPU System%","CPU System","CPU Utilization (%)", graphs[1], axises[1])
     #graph3,axes3 = do_chart(323, c, ranks, "comm_rank", "status:VmRSS%","Mean memory footprint (KB)","Kilobytes", graphs[0], axises[0])
-    graphs[2],axises[2] = do_chart(323, c, nodes, "node_id", "status:VmRSS%","Mean memory footprint (KB)","Kilobytes", graphs[2], axises[2])
-    graphs[3],axises[3] = do_chart(324, c, nodes, "node_id", "CPU User%","CPU User","CPU Utilization (%)", graphs[3], axises[3])
-    graphs[4],axises[4] = do_chart(325, c, nodes, "node_id", "status:VmHWM","High Water Mark","Kilobytes", graphs[4], axises[4])
-    graphs[5],axises[5] = do_chart(326, c, nodes, "node_id", "CPU Idle%","CPU Idle","CPU Idle (%)", graphs[5], axises[5])
+    graphs[2],axises[2] = do_chart(323, c, ranks, None, "comm_rank", "status:VmRSS%","Resident Set Size","Kilobytes", graphs[2], axises[2])
+    graphs[3],axises[3] = do_chart(324, c, nodes, noderanks, "comm_rank", "CPU User%","CPU User","CPU Utilization (%)", graphs[3], axises[3])
+    graphs[4],axises[4] = do_chart(325, c, ranks, None, "comm_rank", "status:VmHWM","High Water Mark","Kilobytes", graphs[4], axises[4])
+    graphs[5],axises[5] = do_chart(326, c, nodes, noderanks, "comm_rank", "CPU Idle%","CPU Idle","CPU Idle (%)", graphs[5], axises[5])
     #graph6,axes6 = do_derived_chart(326, c, ranks, "comm_rank", "%TAU::0::exclusive_TIME::MPI_Waitall()%","%TAU::0::calls::MPI_Waitall()%","MPI_Waitall() ","MPI_Waitall()", None, None)
 
 def main(arguments):
@@ -249,10 +260,10 @@ def main(arguments):
         ranks = get_ranks(c)
     print ("ranks: ", ranks)
     # get the number of nodes
-    nodes = get_nodes(c)
+    nodes,noderanks = get_nodes(c)
     while nodes.size == 0:
         time.sleep(1)
-        nodes = get_nodes(c)
+        nodes,noderanks = get_nodes(c)
     print ("nodes: ", nodes)
     get_min_timestamp(c)
     #resize the figure
@@ -263,7 +274,7 @@ def main(arguments):
     fig_size[1] = 9
     pl.rcParams["figure.figsize"] = fig_size
     pl.ion()
-    docharts(c,nodes,ranks)
+    docharts(c,nodes,noderanks,ranks)
     print("Closing connection to database.")
     # Closing the connection to the database file
     conn.close()
@@ -273,7 +284,7 @@ def main(arguments):
         print("Updating chart...")
         # open the connection
         c = open_connection(sqlite_file)
-        docharts(c,nodes,ranks)
+        docharts(c,nodes,noderanks,ranks)
         print("Closing connection to database.")
         # Closing the connection to the database file
         conn.close()

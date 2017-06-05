@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+if [ -z "${COMPILER}" ] ; then
+  COMPILER=mpicc
+fi
+
 if [ "x${ADIOSDIR}" == "x" ] ; then
   ADIOSDIR=/home/khuck/src/chaos/adios/ADIOS-gcc
 fi

@@ -96,6 +96,9 @@ double do_work(int i) {
 
   double result = c[0][1];
 
+  /* output some system data */
+  send_sos_system_data();
+
   freeMatrix(a, NRA, NCA);
   freeMatrix(b, NCA, NCB);
   freeMatrix(c, NCA, NCB);
@@ -129,8 +132,6 @@ void main_loop(void) {
       /* do work */
       total += do_work(i);
     }
-    /* output some system data */
-    send_sos_system_data();
     flush_it();
   }
   /* wait for everyone to finish at the same time */
