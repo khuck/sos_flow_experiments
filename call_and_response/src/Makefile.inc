@@ -1,4 +1,5 @@
 HOST=$(shell hostname)
+CXX_STD_FLAG=-std=c++11 
 ifeq ($(HOST),ktau)
   SOSDIR=$(HOME)/src/sos_flow/build-linux
   CC=mpicc
@@ -19,6 +20,7 @@ else ifeq ($(BUILDDIR),build-falcon)
   POWER_FLAG=
   CC=mpicc
   CXX=mpicxx
+  CXX_STD_FLAG=-std=c++0x 
 else
   SOSDIR=$(HOME)/src/sos_flow/build-titan
   CC=cc

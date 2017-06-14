@@ -1,7 +1,7 @@
 include Makefile.inc
 RM=rm -f
-CPPFLAGS=-g -I. -I$(SOSDIR)/include -pthread -std=c++11 $(POWER_FLAG)
-LDFLAGS=-g -lpthread -std=c++11
+CPPFLAGS=-g -I. -I$(SOSDIR)/include -pthread $(CXX_STD_FLAG) $(POWER_FLAG)
+LDFLAGS=-g -lpthread $(CXX_STD_FLAG)
 LDLIBS=-L$(SOSDIR)/lib -lsos
 
 SRCS=$(wildcard *.cpp)

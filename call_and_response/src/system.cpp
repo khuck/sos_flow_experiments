@@ -62,6 +62,7 @@ bool parse_proc_self_status(void) {
     while ( fgets( line, 4096, f)) {
         string tmp(line);
         if (!tmp.compare(0,prefix.size(),prefix)) {
+        // crappy compilers can't do this trick.
         /*
             const std::regex separator(":");
             std::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
