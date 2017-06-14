@@ -32,6 +32,9 @@ clean:
 distclean: clean
 	$(RM) *~ $(DEPS)
 
+remake: distclean
+	$(MAKE) -j $(TARGET)
+
 ifneq ("$(wildcard $(DEPS))","")
 include $(DEPS)
 endif

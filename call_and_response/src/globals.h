@@ -4,6 +4,7 @@
 #include "sos.h"
 #include <string>
 #include <iostream>
+#include <atomic>
 
 /* Make sure to declare & initialize these in main.cpp! */
 #ifndef MY_EXTERN
@@ -15,6 +16,7 @@ MY_EXTERN SOS_runtime * _runtime;
 MY_EXTERN int _daemon_rank;
 MY_EXTERN bool _shutdown_daemon;
 MY_EXTERN bool _balanced;
+MY_EXTERN std::atomic<bool> _got_message;
 #endif //MY_EXTERN
 
 void make_pub(void);

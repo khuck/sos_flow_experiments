@@ -1,5 +1,5 @@
 #!/bin/bash -x
-#SBATCH --nodes=65 
+#SBATCH --nodes=2 
 #SBATCH --sockets-per-node=2 
 #SBATCH --cores-per-socket=14 
 #SBATCH --partition=defq 
@@ -13,9 +13,9 @@ source /home/khuck/src/sos_flow/hosts/linux/setenv.sh
 hostname=`hostname`
 sosbin=/home/khuck/src/sos_flow/build-linux/bin
 cwd=`pwd`
-num_listeners=64
+num_listeners=1
 app_ranks_per_node=28
-app_ranks=1792
+app_ranks=28
 
 # export SOS_WORK=${cwd}
 export SOS_WORK=/tmp

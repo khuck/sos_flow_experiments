@@ -8,7 +8,7 @@ else ifeq ($(HOST),ln1)
   SOSDIR=$(HOME)/src/sos_flow/build-linux
   CC=mpicc
   CXX=mpicxx
-  POWER_FLAG=
+  POWER_FLAG=-DAPEX_HAVE_POWERCAP_POWER
 else ifeq ($(NERSC_HOST),cori)
   SOSDIR=$(SCRATCH)/mona/sos_flow/build-cori-${compiler}
   POWER_FLAG=-DAPEX_HAVE_CRAY_POWER

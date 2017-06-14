@@ -62,11 +62,12 @@ def make_index(c):
     try_execute(c,sql_statement);
 
 def get_ranks(c):
-    sql_statement = ("select distinct comm_rank from tblpubs order by comm_rank;")
+    sql_statement = ("select distinct comm_rank, process_id from tblpubs where title not like 'system monitor' and title not like 'process monitor: %' order by comm_rank;")
     #print("Executing query")
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     ranks = np.array([x[0] for x in all_rows])
+    procs = np.array([x[1] for x in all_rows])
     ranklen = len(ranks)
     if ranklen > 10:
         smallranks = [0]
@@ -77,11 +78,13 @@ def get_ranks(c):
             smallranks.append(candidate)
         smallranks.append(int(ranklen-1))
         smallranks2 = []
+        smallprocs2 = []
         for index in smallranks:
             smallranks2.append(ranks[index])
-        return np.array(sorted(smallranks2))
+            smallprocs2.append(procs[index])
+        return np.array(sorted(smallranks2)), np.array(sorted(smallprocs2))
     else:
-        return ranks
+        return ranks, procs
 
 def get_nodes(c):
     sql_statement = ("select distinct node_id, min(comm_rank) from tblpubs group by node_id order by comm_rank;")
@@ -134,9 +137,9 @@ def do_chart(subplot, c, ranks, ranks2, group_column, metric, plot_title, y_labe
             sql_statement = (sql_statement + " like '" + r + "' order by tblvals.time_pack;")
         """
         if ranks2 == None:
-            sql_statement = (sql_statement + " = " + str(r) + " order by tblvals.time_pack;")
+            sql_statement = (sql_statement + " = " + str(r) + " and tblvals.val > 0 order by tblvals.time_pack;")
         else:
-            sql_statement = (sql_statement + " = " + str(ranks2[index]) + " order by tblvals.time_pack;")
+            sql_statement = (sql_statement + " like '" + r + "' and tblvals.val > 0 order by tblvals.time_pack;")
 
         #params = [metric,r]
         print "Executing query: ", sql_statement,
@@ -233,15 +236,15 @@ def do_derived_chart(subplot, c, ranks, group_column, metric1, metric2, plot_tit
         pl.draw()
     return graph,axes
 
-def docharts(c,nodes,noderanks,ranks):
+def docharts(c,nodes,noderanks,ranks,procs):
     # rows, columns, figure number for subplot value
     graphs[0],axises[0] = do_chart(321, c, ranks, None, "comm_rank", "Iteration","Time per iteration","Time", graphs[0], axises[0])
-    graphs[1],axises[1] = do_chart(322, c, nodes, noderanks, "comm_rank", "CPU System%","CPU System","CPU Utilization (%)", graphs[1], axises[1])
+    graphs[1],axises[1] = do_chart(322, c, nodes, noderanks, "node_id", "CPU System%","CPU System","CPU Utilization (%)", graphs[1], axises[1])
     #graph3,axes3 = do_chart(323, c, ranks, "comm_rank", "status:VmRSS%","Mean memory footprint (KB)","Kilobytes", graphs[0], axises[0])
-    graphs[2],axises[2] = do_chart(323, c, ranks, None, "comm_rank", "status:VmRSS%","Resident Set Size","Kilobytes", graphs[2], axises[2])
-    graphs[3],axises[3] = do_chart(324, c, nodes, noderanks, "comm_rank", "CPU User%","CPU User","CPU Utilization (%)", graphs[3], axises[3])
-    graphs[4],axises[4] = do_chart(325, c, ranks, None, "comm_rank", "status:VmHWM","High Water Mark","Kilobytes", graphs[4], axises[4])
-    graphs[5],axises[5] = do_chart(326, c, nodes, noderanks, "comm_rank", "CPU Idle%","CPU Idle","CPU Idle (%)", graphs[5], axises[5])
+    graphs[2],axises[2] = do_chart(323, c, procs, None, "process_id", "status:VmData%","Resident Set Size","Kilobytes", graphs[2], axises[2])
+    graphs[3],axises[3] = do_chart(324, c, nodes, noderanks, "node_id", "CPU User%","CPU User","CPU Utilization (%)", graphs[3], axises[3])
+    graphs[4],axises[4] = do_chart(325, c, procs, None, "process_id", "status:VmHWM","High Water Mark","Kilobytes", graphs[4], axises[4])
+    graphs[5],axises[5] = do_chart(326, c, nodes, noderanks, "node_id", "Package-0 Energy","Package-0 Energy","Package-0 Energy", graphs[5], axises[5])
     #graph6,axes6 = do_derived_chart(326, c, ranks, "comm_rank", "%TAU::0::exclusive_TIME::MPI_Waitall()%","%TAU::0::calls::MPI_Waitall()%","MPI_Waitall() ","MPI_Waitall()", None, None)
 
 def main(arguments):
@@ -254,10 +257,10 @@ def main(arguments):
 
     # get the number of ranks
     make_index(c)
-    ranks = get_ranks(c)
+    ranks,procs = get_ranks(c)
     while ranks.size == 0:
         time.sleep(1)
-        ranks = get_ranks(c)
+        ranks,procs = get_ranks(c)
     print ("ranks: ", ranks)
     # get the number of nodes
     nodes,noderanks = get_nodes(c)
@@ -274,17 +277,17 @@ def main(arguments):
     fig_size[1] = 9
     pl.rcParams["figure.figsize"] = fig_size
     pl.ion()
-    docharts(c,nodes,noderanks,ranks)
+    docharts(c,nodes,noderanks,ranks,procs)
     print("Closing connection to database.")
     # Closing the connection to the database file
     conn.close()
     pl.tight_layout()
     while True:
-        pl.pause(5.0)
+        pl.pause(30.0)
         print("Updating chart...")
         # open the connection
         c = open_connection(sqlite_file)
-        docharts(c,nodes,noderanks,ranks)
+        docharts(c,nodes,noderanks,ranks,procs)
         print("Closing connection to database.")
         # Closing the connection to the database file
         conn.close()

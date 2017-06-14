@@ -17,10 +17,8 @@ class simple_timer {
     ~simple_timer() {
       std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - start);
       sample_value(_name, time_span.count() * seconds);
-      /*
-      std::stringstream ss;
-      ss << _commrank << ":" << _name << ": " << time_span.count() * seconds << std::endl;
-      std::cout << ss.str(); fflush(stdout);
-      */
+      //std::stringstream ss;
+      //ss << _commrank << ":" << _name << ": " << time_span.count() * seconds << std::endl;
+      //std::cout << ss.str(); fflush(stdout);
     }
 };

@@ -4,12 +4,34 @@
 #include <iterator>
 #include <unistd.h>
 
+void
+my_feedback_handler(
+        int payload_type,
+        int payload_size,
+        void *payload_data)
+{
+    switch (payload_type) {
+
+    case SOS_FEEDBACK_TYPE_PAYLOAD:
+        if (_commrank == 0) {
+            printf("application : Received %d-byte payload --> \"%s\"\n",
+                    payload_size, (unsigned char *) payload_data);
+            fflush(stdout);
+        }
+        _got_message=true;
+        break;
+    }
+
+    return;
+}
+
+
 void initialize(int * argc, char *** argv) {
     static bool initialized = false;
     if (!initialized) {
         _runtime = NULL;
         //printf("init() trying to connect...\n");
-        SOS_init(argc, argv, &_runtime, SOS_ROLE_CLIENT, SOS_RECEIVES_NO_FEEDBACK, NULL);
+        SOS_init(argc, argv, &_runtime, SOS_ROLE_CLIENT, SOS_RECEIVES_DIRECT_MESSAGES, my_feedback_handler);
         if(_runtime == NULL) {
             printf("%d Unable to connect to SOS daemon. Determining whether to spawn...\n", _commrank);
             fork_exec_sosd();
@@ -19,7 +41,7 @@ void initialize(int * argc, char *** argv) {
             sleep(2);
             _runtime = NULL;
             //printf("init() trying to connect...\n");
-            SOS_init(argc, argv, &_runtime, SOS_ROLE_CLIENT, SOS_RECEIVES_NO_FEEDBACK, NULL);
+            SOS_init(argc, argv, &_runtime, SOS_ROLE_CLIENT, SOS_RECEIVES_DIRECT_MESSAGES, my_feedback_handler);
             if (_runtime != NULL) {
                 printf("%d Connected to SOS daemon. Continuing...\n", _commrank);
                 break;
@@ -29,6 +51,7 @@ void initialize(int * argc, char *** argv) {
             }
         }
         initialized = true;
+        SOS_sense_register(_runtime, "rebalance");
     }
     MPI_Barrier(MPI_COMM_WORLD);
     make_pub();
@@ -80,6 +103,7 @@ void finalize(void) {
 void sample_value(std::string name, double value) {
   //std::cout << "Sending data : " << name << ": " << value << std::endl;
   SOS_pack(_sos_pub, name.c_str(), SOS_VAL_TYPE_DOUBLE, &value);
+  SOS_publish(_sos_pub);
 }
 
 void flush_it(void) {

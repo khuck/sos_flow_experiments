@@ -79,8 +79,9 @@ double do_work(int i) {
     NRA = MATRIX_SIZE;
     NCA = MATRIX_SIZE;
     NCB = MATRIX_SIZE;
+    _balanced=false;
   }
-  //std::cout << _commrank << ": MATRIX SIZE: " << NRA << std::endl;
+  //std::cout << _commrank << ": MATRIX SIZE: " << NRA << std::endl; fflush(stdout);
 
   a = allocateMatrix(NRA, NCA);
   b = allocateMatrix(NCA, NCB);
@@ -97,7 +98,7 @@ double do_work(int i) {
   double result = c[0][1];
 
   /* output some system data */
-  send_sos_system_data();
+  //send_sos_system_data();
 
   freeMatrix(a, NRA, NCA);
   freeMatrix(b, NCA, NCB);
@@ -110,7 +111,7 @@ double do_work(int i) {
  * Eventually, we want to get an analysis result from SOS. */
 void check_for_balance(int i) {
     /* make the app balanced */
-    if (i >= max_iterations/2) _balanced=true;
+    if (_got_message) { _balanced = true; _got_message = false; }
 }
 
 void main_loop(void) {
@@ -132,12 +133,11 @@ void main_loop(void) {
       /* do work */
       total += do_work(i);
     }
-    flush_it();
+    /* wait for everyone to finish at the same time */
+    MPI_Barrier(MPI_COMM_WORLD);
   }
-  /* wait for everyone to finish at the same time */
-  MPI_Barrier(MPI_COMM_WORLD);
   /* make sure the final value is used */
   if (_commrank == 0) {
-    std::cout << "Total: " << total << std::endl;
+    std::cout << "Total: " << total << std::endl; fflush(stdout);
   }
 }

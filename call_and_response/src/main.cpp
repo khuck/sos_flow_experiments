@@ -9,6 +9,7 @@ SOS_runtime * _runtime = NULL;
 int _daemon_rank = 0;
 bool _shutdown_daemon = false;
 bool _balanced = false;
+bool _got_message = false;
 
 int main (int argc, char * argv[]) {
   MPI_Init(&argc, &argv);

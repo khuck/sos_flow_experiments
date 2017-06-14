@@ -41,7 +41,7 @@ public:
   void sample_values();
 };
 
-#if defined(APEX_HAVE_CRAY_POWER)
+#if defined(SOS_HAVE_CRAY_POWER)
 int read_cray_file(const char * filename) {
   int tmpint; 
   std::string tmpstr; 

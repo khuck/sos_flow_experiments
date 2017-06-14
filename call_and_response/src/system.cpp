@@ -14,6 +14,45 @@ inline bool file_exists (const std::string& name) {
   return (stat (name.c_str(), &buffer) == 0); 
 }
 
+#if defined(APEX_HAVE_POWERCAP_POWER)
+/*
+ * This isn't really the right way to do this. What should be done
+ * is:
+ * 1) read /sys/class/powercap/intel-rapl/intel-rapl:0/name to get the counter name (once)
+ * 2) read /sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj to get the value
+ * 3) for i in /sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:*:*
+ *    do 1), 2) above for each
+ *
+ * This was a quick hack to get basic support for KNL.
+ */
+inline long long read_package0 (void) {
+  long long tmplong;
+  FILE *fff;
+  fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj","r");
+  if (fff==NULL) {
+    std::cerr << "Error opening package0!" << std::endl;
+  } else {
+    fscanf(fff,"%lld",&tmplong);
+    fclose(fff);
+  }
+  return tmplong/1000000;
+}
+
+inline long long  read_dram (void) {
+  //std::cout << "Reading dram" << std::endl;
+  long long  tmplong;
+  FILE *fff;
+  fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj","r");
+  if (fff==NULL) {
+    std::cerr << "Error opening dram!" << std::endl;
+  } else {
+    fscanf(fff,"%lld",&tmplong);
+    fclose(fff);
+  }
+  return tmplong/1000000;
+}
+#endif
+
 bool parse_proc_self_status(void) {
   if (!file_exists("/proc/self/status")) { return false; }
   FILE *f = fopen("/proc/self/status", "r");
