@@ -51,7 +51,7 @@ void initialize(int * argc, char *** argv) {
             }
         }
         initialized = true;
-        SOS_sense_register(_runtime, "rebalance");
+        SOS_sense_register(_runtime, const_cast<char*>("rebalance"));
     }
     MPI_Barrier(MPI_COMM_WORLD);
     make_pub();
