@@ -14,8 +14,8 @@ hostname=`hostname`
 sosbin=/home/khuck/src/sos_flow/build-linux/bin
 cwd=`pwd`
 num_listeners=64
-app_ranks_per_node=28
-app_ranks=1792
+app_ranks_per_node=27
+app_ranks=1728
 
 # export SOS_WORK=${cwd}
 export SOS_WORK=/tmp

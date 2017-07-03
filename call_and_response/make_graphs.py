@@ -241,7 +241,7 @@ def docharts(c,nodes,noderanks,ranks,procs):
     graphs[0],axises[0] = do_chart(321, c, ranks, None, "comm_rank", "Iteration","Time per iteration","Time", graphs[0], axises[0])
     graphs[1],axises[1] = do_chart(322, c, nodes, noderanks, "node_id", "CPU System%","CPU System","CPU Utilization (%)", graphs[1], axises[1])
     #graph3,axes3 = do_chart(323, c, ranks, "comm_rank", "status:VmRSS%","Mean memory footprint (KB)","Kilobytes", graphs[0], axises[0])
-    graphs[2],axises[2] = do_chart(323, c, procs, None, "process_id", "status:VmData%","Resident Set Size","Kilobytes", graphs[2], axises[2])
+    graphs[2],axises[2] = do_chart(323, c, procs, None, "process_id", "status:VmRSS%","Resident Set Size","Kilobytes", graphs[2], axises[2])
     graphs[3],axises[3] = do_chart(324, c, nodes, noderanks, "node_id", "CPU User%","CPU User","CPU Utilization (%)", graphs[3], axises[3])
     graphs[4],axises[4] = do_chart(325, c, procs, None, "process_id", "status:VmHWM","High Water Mark","Kilobytes", graphs[4], axises[4])
     graphs[5],axises[5] = do_chart(326, c, nodes, noderanks, "node_id", "Package-0 Energy","Package-0 Energy","Package-0 Energy", graphs[5], axises[5])
