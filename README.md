@@ -68,7 +68,13 @@ The example of interest is in the "Junmin" directory of this repo.
 
 ```
 cd Junmin
-./build-cori.sh
+./build-linux.sh
+```
+
+The key change to building xmain and reader2 is that the TAU libraries need to be added *before* the ADIOS libraries in the link line.  TAU will perform the measurements, and send the TAU data to the SOS aggregator network.  See ImpactTv1betaAdios/Makefile.tau and readerFull/compile.tau for details:
+
+```
+ADIOS = $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f)
 ```
 
 ### Running the example
