@@ -1,12 +1,12 @@
-#sos_flow_experiments
+# sos_flow_experiments
 
 This repository contains several examples that use SOS and/or TAU for runtime monitoring of parallel applications and workflows.
 
 SOS has an optional dependency on EVPath. Several of the workflows use ADIOS.  For specific information on installing ADIOS and its dependencies (i.e. EVPath), see [https://www.olcf.ornl.gov/center-projects/adios/](https://www.olcf.ornl.gov/center-projects/adios/).  In the instructions below, the "CHAOS" path is the set of dependencies for ADIOS (EVPath, etc.)
 
-#Building SOS_flow
+# Building SOS_flow
 
-###To configure and install SOS (quick):
+### To configure and install SOS (quick):
 
 ```
 git clone https://github.com/cdwdirect/sos_flow.git
@@ -17,7 +17,7 @@ cd build-linux
 make && make install
 ```
 
-###To configure and build SOS (if quick doesn't work - modify as necessary to match your filesystem and compilers):
+### To configure and build SOS (if quick doesn't work - modify as necessary to match your filesystem and compilers):
 
 ```
 git clone https://github.com/cdwdirect/sos_flow.git
@@ -32,9 +32,9 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=. -DCMAKE_C_COMPI
 make && make install
 ```
 
-#Building TAU and PDT
+# Building TAU and PDT
 
-###Building PDT
+### Building PDT
 
 One of the optional dependencies of TAU is PDT:
 
@@ -47,7 +47,7 @@ cd pdtoolkit-3.24
 make && make install
 ```
 
-###Building TAU
+### Building TAU
 
 To configure & build TAU, use this patched version of TAU: [http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz](http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz).  The paths to SOS and ADIOS are examples, please modify for your filesystem.
 
@@ -58,11 +58,11 @@ cd tau2-git-latest
 ./configure -adios=/home/khuck/src/chaos/adios/ADIOS-gcc -sos=/home/khuck/src/sos_flow/build-linux -pdt=/usr/local/packages/pdt/3.23 -mpi -pthread
 ```
 
-#Building and Running an example
+# Building and Running an example
 
 The example of interest is a coupled application that uses ADIOS to exchange data from one MPI application to another.  TAU will intercept the MPI and ADIOS events, and send the performance data to SOS, which will aggregate the data in a database.  After the example executes, we can post-process the database to extract the MPI collective periodicity.
 
-###Building the example
+### Building the example
 
 The example of interest is in the "Junmin" directory of this repo.
 
@@ -71,7 +71,7 @@ cd Junmin
 ./build-cori.sh
 ```
 
-###Running the example
+### Running the example
 
 ```
 mkdir testdir
@@ -86,7 +86,7 @@ cd testdir
 sbatch small.r
 ```
 
-###Postprocessing
+### Postprocessing
 
 To extract the MPI collective periodicity from the SOS database, run a script in the SOS_flow repo (modify the path as necessary).  The script takes two arguments, the first is the name of the SOS database, and the second argument is the name of the application of interest (since the SOS database contains performance data from both applications):
 
