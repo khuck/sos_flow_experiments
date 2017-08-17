@@ -1,0 +1,62 @@
+
+
+op_list: [
+  {
+    type: mpi_comm_split,
+    name: comm,
+    map: ?????? # What does this look like?
+  }
+  {
+    type: mpi_gather,
+    num_bytes: 64,         #Number of bytes gathered from each process
+    comm: MPI_COMM_WORLD,   #Not clear how this will work with subcommunicators
+    root: 0
+  },
+  {
+    type: compute,
+    time: 0.5       #Compute time in seconds
+  },
+  {
+    type: mpi_reduce,
+    num_bytes: 256,
+    comm: comm, #How will this work?
+    root: 0
+  },
+  {
+    type: compute,
+    time: 0.1       #Compute time in seconds
+  },
+  {
+    type: mpi_allgather,
+    num_bytes: 976, # In the case of allgatherv, we want to average the sizes across all processes
+    comm: MPI_COMM_WORLD
+  },
+  {
+    # an adios_phase represents a group of variables written by adios, and will generate the full
+    # open, define, write, close cycle for those variables. At this point we will assume that our
+    # data follows a regular decomposition in the first dimension, and thus we want to use average
+    # values here to represent codes that use an irregular decomposition.
+    type: adios_phase,
+    vars: [
+      {
+        name: a,
+        type: int,
+        dims: scalar,
+        value: 64
+      },
+      {
+        name: b,
+        type: float,
+        local_dims: [a, 4]   # each dimension can be either an existing variable or an integer
+      }
+    ]
+  }
+
+]
+
+
+
+
+
+
+
