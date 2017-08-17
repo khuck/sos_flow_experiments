@@ -113,4 +113,4 @@ The script will also open a chart window that will look something like this:
 
 ![./figures/mpi_periodicity.png](./figures/mpi_periodicity.png)
 
-The script will also (eventuallty) generate a JSON file with the MPI collective events, to generate an ADIOS Skel/Diesel proxy application (TBD).
+The script will also (eventuallty) generate a YAML file with the MPI collective events, to generate an ADIOS Skel/Diesel proxy application (TBD).
