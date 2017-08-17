@@ -1,4 +1,178 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
+
+\bibitem{agelastos2016continuous}
+Anthony Agelastos, Benjamin Allan, Jim Brandt, Ann Gentile, Sophia Lefantzi,
+  Steve Monk, Jeff Ogden, Mahesh Rajan, and Joel Stevenson.
+\newblock Continuous whole-system monitoring toward rapid understanding of
+  production hpc applications and systems.
+\newblock {\em Parallel Computing}, 58:90--106, 2016.
+
+\bibitem{arnold2007stack}
+Dorian~C Arnold, Dong~H Ahn, Bronis~R De~Supinski, Gregory~L Lee, Barton~P
+  Miller, and Martin Schulz.
+\newblock Stack trace analysis for large scale debugging.
+\newblock In {\em Parallel and Distributed Processing Symposium, 2007. IPDPS
+  2007. IEEE International}, pages 1--10. IEEE, 2007.
+
+\bibitem{bhatele2012simplifying}
+A~Bhatele, T~Gamblin, BN~Gunney, M~Schulz, and PT~Bremer.
+\newblock Simplifying performance analysis of large-scale adaptive scientific
+  applications.
+\newblock Technical report, Lawrence Livermore National Laboratory (LLNL),
+  Livermore, CA, 2012.
+
+\bibitem{biddiscombe2012parallel}
+John Biddiscombe, Jerome Soumagne, Guillaume Oger, David Guibert, and
+  Jean-Guillaume Piccinali.
+\newblock Parallel computational steering for hpc applications using hdf5 files
+  in distributed shared memory.
+\newblock {\em IEEE Transactions on Visualization and Computer Graphics},
+  18(6):852--864, 2012.
+
+\bibitem{boehme2016caliper}
+David Boehme, Todd Gamblin, David Beckingsale, Peer-Timo Bremer, Alfredo
+  Gimenez, Matthew LeGendre, Olga Pearce, and Martin Schulz.
+\newblock Caliper: performance introspection for hpc software stacks.
+\newblock In {\em High Performance Computing, Networking, Storage and Analysis,
+  SC16: International Conference for}, pages 550--560. IEEE, 2016.
+
+\bibitem{bohme2017aggregation}
+David B{\"o}hme, David Beckingsdale, and Martin Schulz.
+\newblock Flexible data aggregation for performance profiling.
+\newblock {\em IEEE Cluster}, 2017.
+
+\bibitem{bohme2015caliper}
+David B{\"o}hme, Todd Gamblin, Peer-Timo Bremer, Olga Pearce, and Martin
+  Schulz.
+\newblock Caliper: Composite performance data collection in hpc codes.
+
+\bibitem{bremer2014connecting}
+Peer-Timo Bremer, Bernd Mohr, Valerio Pascucci, and Martin Schulz.
+\newblock Connecting performance analysis and visualization to advance extreme
+  scale computing (dagstuhl perspectives workshop 14022).
+\newblock In {\em Dagstuhl Reports}, volume~4. Schloss Dagstuhl-Leibniz-Zentrum
+  fuer Informatik, 2014.
+
+\bibitem{brim2010mrnet}
+Michael~J Brim, Luiz DeRose, Barton~P Miller, Ramya Olichandran, and Philip~C
+  Roth.
+\newblock Mrnet: A scalable infrastructure for the development of parallel
+  tools and applications.
+\newblock {\em Cray User Group}, 2010.
+
+\bibitem{diethelm2016tools}
+Kai Diethelm.
+\newblock Tools for assessing and optimizing the energy requirements of high
+  performance scientific computing software.
+\newblock {\em PAMM}, 16(1):837--838, 2016.
+
+\bibitem{evans2016understanding}
+R~Todd Evans, James~C Browne, and William~L Barth.
+\newblock Understanding application and system performance through system-wide
+  monitoring.
+\newblock In {\em Parallel and Distributed Processing Symposium Workshops, 2016
+  IEEE International}, pages 1702--1710. IEEE, 2016.
+
+\bibitem{gimenez2017memaxes}
+Adolfo~Alfredo Gimenez, Todd Gamblin, Ilir Jusufi, Abhinav Bhatele, Martin
+  Schulz, Peer-Timo Bremer, and Bernd Hamann.
+\newblock Memaxes: Visualization and analytics for characterizing ceoomplex
+  memory performance behaviors.
+\newblock {\em IEEE Transactions on Visualization and Computer Graphics}, 2017.
+
+\bibitem{huck2005perfexplorer}
+Kevin~A Huck and Allen~D Malony.
+\newblock Perfexplorer: A performance data mining framework for large-scale
+  parallel computing.
+\newblock In {\em Proceedings of the 2005 ACM/IEEE conference on
+  Supercomputing}, page~41. IEEE Computer Society, 2005.
+
+\bibitem{isaacs2014state}
+Katherine~E Isaacs, Alfredo Gim{\'e}nez, Ilir Jusufi, Todd Gamblin, Abhinav
+  Bhatele, Martin Schulz, Bernd Hamann, and Peer-Timo Bremer.
+\newblock State of the art of performance visualization.
+\newblock {\em EuroVis 2014}, 2014.
+
+\bibitem{isaacs2012exploring}
+Katherine~E Isaacs, Aaditya~G Landge, Todd Gamblin, Peer-Timo Bremer, Valerio
+  Pascucci, and Bernd Hamann.
+\newblock Exploring performance data with boxfish.
+\newblock In {\em High Performance Computing, Networking, Storage and Analysis
+  (SCC), 2012 SC Companion:}, pages 1380--1381. IEEE, 2012.
+
+\bibitem{knupfer2012score}
+Andreas Kn{\"u}pfer, Christian R{\"o}ssel, Dieter an~Mey, Scott Biersdorff, Kai
+  Diethelm, Dominic Eschweiler, Markus Geimer, Michael Gerndt, Daniel Lorenz,
+  Allen Malony, et~al.
+\newblock Score-p: A joint performance measurement run-time infrastructure for
+  periscope, scalasca, tau, and vampir.
+\newblock In {\em Tools for High Performance Computing 2011}, pages 79--91.
+  Springer, 2012.
+
+\bibitem{kufrin2005perfsuite}
+Rick Kufrin.
+\newblock Perfsuite: An accessible, open source performance analysis
+  environment for linux.
+\newblock In {\em 6th International Conference on Linux Clusters: The HPC
+  Revolution}, volume 151, page~05, 2005.
+
+\bibitem{laguna2011large}
+Ignacio Laguna, Todd Gamblin, Bronis~R de~Supinski, Saurabh Bagchi, Greg
+  Bronevetsky, Dong~H Anh, Martin Schulz, and Barry Rountree.
+\newblock Large scale debugging of parallel tasks with automaded.
+\newblock In {\em Proceedings of 2011 International Conference for High
+  Performance Computing, Networking, Storage and Analysis}, page~50. ACM, 2011.
+
+\bibitem{mandal2016toward}
+Anirban Mandal, Paul Ruth, Ilya Baldin, Dariusz Kr{\'o}l, Gideon Juve, Rajiv
+  Mayani, Rafael~Ferreira Da~Silva, Ewa Deelman, Jeremy Meredith, Jeffrey
+  Vetter, et~al.
+\newblock Toward an end-to-end framework for modeling, monitoring and anomaly
+  detection for scientific workflows.
+\newblock In {\em Parallel and Distributed Processing Symposium Workshops, 2016
+  IEEE International}, pages 1370--1379. IEEE, 2016.
+
+\bibitem{mitra2014accurate}
+Subrata Mitra, Ignacio Laguna, Dong~H Ahn, Saurabh Bagchi, Martin Schulz, and
+  Todd Gamblin.
+\newblock Accurate application progress analysis for large-scale parallel
+  debugging.
+\newblock In {\em ACM SIGPLAN Notices}, volume~49, pages 193--203. ACM, 2014.
+
+\bibitem{oleynik2015run}
+Yury Oleynik, Michael Gerndt, Joseph Schuchart, Per~Gunnar Kjeldsberg, and
+  Wolfgang~E Nagel.
+\newblock Run-time exploitation of application dynamism for energy-efficient
+  exascale computing (readex).
+\newblock In {\em Computational Science and Engineering (CSE), 2015 IEEE 18th
+  International Conference on}, pages 347--350. IEEE, 2015.
+
+\bibitem{rivi2012situ}
+Marzia Rivi, Luigi Calori, Giuseppa Muscianisi, and Vladimir Slavnic.
+\newblock In-situ visualization: State-of-the-art and some use cases.
+\newblock {\em PRACE White Paper}, pages 1--18, 2012.
+
+\bibitem{schulz2015flexible}
+Martin Schulz, Abhinav Bhatele, David B{\"o}hme, Peer-Timo Bremer, Todd
+  Gamblin, Alfredo Gimenez, and Kate Isaacs.
+\newblock A flexible data model to support multi-domain performance analysis.
+\newblock In {\em Tools for High Performance Computing 2014}, pages 211--229.
+  Springer, 2015.
+
+\bibitem{schulz2011interpreting}
+Martin Schulz, Joshua~A Levine, Peer-Timo Bremer, Todd Gamblin, and Valerio
+  Pascucci.
+\newblock Interpreting performance data across intuitive domains.
+\newblock In {\em Parallel Processing (ICPP), 2011 International Conference
+  on}, pages 206--215. IEEE, 2011.
+
+\bibitem{wolf2008usage}
+Felix Wolf, Brian~JN Wylie, Erika Abrah{\'a}m, Daniel Becker, Wolfgang Frings,
+  Karl F{\"u}rlinger, Markus Geimer, Marc-Andr{\'e} Hermanns, Bernd Mohr,
+  Shirley Moore, et~al.
+\newblock Usage of the scalasca toolset for scalable performance analysis of
+  large-scale parallel applications.
+\newblock {\em Tools for High Performance Computing}, pages 157--167, 2008.
 
 \bibitem{wood2016scalable}
 Chad Wood, Sudhanshu Sane, Daniel Ellsworth, Alfredo Gimenez, Kevin Huck, Todd

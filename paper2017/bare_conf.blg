@@ -1,46 +1,51 @@
-This is BibTeX, Version 0.99d (TeX Live 2015/Debian)
-Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+This is BibTeX, Version 0.99d (TeX Live 2016)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
 The top-level auxiliary file: bare_conf.aux
 The style file: plain.bst
 Database file #1: bare_conf.bib
-You've used 1 entry,
+Warning--empty journal in bohme2015caliper
+Warning--empty year in bohme2015caliper
+Warning--can't use both volume and number fields in bremer2014connecting
+Warning--can't use both volume and number fields in mitra2014accurate
+You've used 26 entries,
             2118 wiz_defined-function locations,
-            503 strings with 4287 characters,
-and the built_in function-call counts, 604 in all, are:
-= -- 57
-> -- 38
-< -- 1
-+ -- 16
-- -- 14
-* -- 46
-:= -- 100
-add.period$ -- 4
-call.type$ -- 1
-change.case$ -- 10
+            640 strings with 10794 characters,
+and the built_in function-call counts, 12772 in all, are:
+= -- 1224
+> -- 841
+< -- 19
++ -- 334
+- -- 306
+* -- 970
+:= -- 2077
+add.period$ -- 91
+call.type$ -- 26
+change.case$ -- 229
 chr.to.int$ -- 0
-cite$ -- 1
-duplicate$ -- 21
-empty$ -- 39
-format.name$ -- 14
-if$ -- 127
+cite$ -- 30
+duplicate$ -- 451
+empty$ -- 809
+format.name$ -- 306
+if$ -- 2686
 int.to.chr$ -- 0
-int.to.str$ -- 1
-missing$ -- 1
-newline$ -- 8
-num.names$ -- 2
-pop$ -- 13
+int.to.str$ -- 26
+missing$ -- 25
+newline$ -- 132
+num.names$ -- 52
+pop$ -- 269
 preamble$ -- 1
-purify$ -- 9
+purify$ -- 202
 quote$ -- 0
-skip$ -- 15
+skip$ -- 333
 stack$ -- 0
-substring$ -- 30
-swap$ -- 9
-text.length$ -- 1
+substring$ -- 614
+swap$ -- 168
+text.length$ -- 19
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 4
-warning$ -- 0
-while$ -- 5
-width$ -- 2
-write$ -- 14
+type$ -- 104
+warning$ -- 4
+while$ -- 100
+width$ -- 28
+write$ -- 296
+(There were 4 warnings)
