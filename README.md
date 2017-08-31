@@ -6,10 +6,10 @@ SOS has an optional dependency on EVPath. Several of the workflows use ADIOS.  F
 
 # Building ADIOS for Pooky event extraction
 
-When working with ADIOS applications, you should use this version of ADIOS (for now): [https://github.com/khuck/ADIOS] (https://github.com/khuck/ADIOS).  It includes support for extracting the dimensions at each adios_write call.
+When working with ADIOS applications, you should use this version of ADIOS (for now): [https://github.com/khuck/ADIOS](https://github.com/khuck/ADIOS).  It includes support for extracting the dimensions at each adios_write call.
 
 NOTE:
-You will also need to use this version of TAU (for now): [http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz] (http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz).  
+You will also need to use this version of TAU (for now): [http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz](http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz).  
 
 # Building SOS_flow
 
