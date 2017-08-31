@@ -136,7 +136,7 @@ def do_chart(subplot, c, ranks, ranks2, group_column, metric, plot_title, y_labe
         else:
             sql_statement = (sql_statement + " like '" + r + "' order by tblvals.time_pack;")
         """
-        if ranks2 == None:
+        if ranks2 == []:
             sql_statement = (sql_statement + " = " + str(r) + " and tblvals.val > 0 order by tblvals.time_pack;")
         else:
             sql_statement = (sql_statement + " like '" + r + "' and tblvals.val > 0 order by tblvals.time_pack;")
@@ -153,7 +153,7 @@ def do_chart(subplot, c, ranks, ranks2, group_column, metric, plot_title, y_labe
             print(sql_statement, params)
 
         #print("Making numpy array of: metric_values")
-        metric_values = np.array([x[1] for x in all_rows])
+        metric_values = np.array([max(x[1],0) for x in all_rows])
         #print("Making numpy array of: pack_time")
         pack_time = np.array([x[2]-min_timestamp for x in all_rows])
 
@@ -238,14 +238,15 @@ def do_derived_chart(subplot, c, ranks, group_column, metric1, metric2, plot_tit
 
 def docharts(c,nodes,noderanks,ranks,procs):
     # rows, columns, figure number for subplot value
-    graphs[0],axises[0] = do_chart(321, c, ranks, None, "comm_rank", "Iteration","Time per iteration","Time", graphs[0], axises[0])
+    graphs[0],axises[0] = do_chart(321, c, ranks, [], "comm_rank", "Iteration","Time per iteration","Seconds", graphs[0], axises[0])
     graphs[1],axises[1] = do_chart(322, c, nodes, noderanks, "node_id", "CPU System%","CPU System","CPU Utilization (%)", graphs[1], axises[1])
     #graph3,axes3 = do_chart(323, c, ranks, "comm_rank", "status:VmRSS%","Mean memory footprint (KB)","Kilobytes", graphs[0], axises[0])
-    graphs[2],axises[2] = do_chart(323, c, procs, None, "process_id", "status:VmRSS%","Resident Set Size","Kilobytes", graphs[2], axises[2])
+    #graphs[2],axises[2] = do_chart(323, c, procs, [], "process_id", "status:VmRSS%","Resident Set Size","Kilobytes", graphs[2], axises[2])
+    graphs[2],axises[2] = do_chart(323, c, procs, [], "process_id", "Matrix Size","Data Set Size","Cells", graphs[2], axises[2])
     graphs[3],axises[3] = do_chart(324, c, nodes, noderanks, "node_id", "CPU User%","CPU User","CPU Utilization (%)", graphs[3], axises[3])
-    graphs[4],axises[4] = do_chart(325, c, procs, None, "process_id", "status:VmHWM","High Water Mark","Kilobytes", graphs[4], axises[4])
+    graphs[4],axises[4] = do_chart(325, c, procs, [], "process_id", "status:VmHWM","High Water Mark","Kilobytes", graphs[4], axises[4])
     graphs[5],axises[5] = do_chart(326, c, nodes, noderanks, "node_id", "Package-0 Energy","Package-0 Energy","Package-0 Energy", graphs[5], axises[5])
-    #graph6,axes6 = do_derived_chart(326, c, ranks, "comm_rank", "%TAU::0::exclusive_TIME::MPI_Waitall()%","%TAU::0::calls::MPI_Waitall()%","MPI_Waitall() ","MPI_Waitall()", None, None)
+    #graph6,axes6 = do_derived_chart(326, c, ranks, "comm_rank", "%TAU::0::exclusive_TIME::MPI_Waitall()%","%TAU::0::calls::MPI_Waitall()%","MPI_Waitall() ","MPI_Waitall()", [], [])
 
 def main(arguments):
     global min_timestamp
