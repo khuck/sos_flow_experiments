@@ -3,23 +3,71 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related Work}
 %
-There is a long history of online monitoring systems for HPC environments.
+Monitoring systems can generally be separated by their purpose into three
+independent sets: system, application, and science.
 %
-Exclusively system-oriented monitoring platforms are limited to serving the
-needs of machine and site administrators.
-%
-System-oriented platforms focus narrowly on machine metrics such as bandwidth,
+System-oriented monitoring focuses on machine metrics such as bandwidth,
 queue depth, resource contention, power, and thermal measurements.
 %
-Application-oriented platforms are often focused on single purposes such as
-the aggregation of performance tool instrumentation, and lack the flexibility
-to truly extend the functionality of an HPC application.
+Exclusively system-oriented monitoring platforms primarily serve the
+needs of machine and site administrators, reporting the health and utilization
+of the nodes, network, and storage systems.
 %
+Application-oriented monitoring looks at the performance of software components,
+exploring both single-process performance characteristics as well as behaviors
+that emerge in parallel distributed contexts.
+%
+These tools are often of use to low-level application developers and library
+writers, but traditionally not helpful to administrators or end users.
+%
+Science-oriented monitoring involves processing information related to the
+simulation phenomenon itself.
+%
+This information can be used for anomaly or convergence detection,
+visualizations, validation of accuracy, and many other domain-specific ends.
+%
+While science-related information is important to end-users, it has in the
+past not been of significant value to developers or administrators.
+%
+This is no longer true.
 %
 \par
+\todo[inline]{REFER TO PAPERS ON PRECISION, POWER vs. PERFORMANCE,
+REPLICATION, ETC. THE KEY IS THAT THESE MODERN EFFORTS OFTEN REQUIRE
+DATA THAT IS NORMALLY ONLY GATHERED FOR DISJOINT PURPOSES OR BY
+UNRELATED TOOLKITS}
+\par
 %
-\todo[inline]{FILL IN PRIOR WORK}
+%To remain performant at scale, both system and application-oriented
+%monitoring frameworks are often limited to predefined purposes such as
+%the aggregation of performance tool instrumentation, efforts to conserve power,
+%load balancing, or run-time solver selection.
 %
+SOSflow is designed to address a variety of purposes for monitoring platforms,
+including those described above.
+%
+By integrating various layers and categories of information, operating in
+situ adjacent applications at run time, and supporting online query,
+analysis, and feedback, SOSflow is able to facilitate both current and
+future HPC needs.
+%
+The following sections describe existing and related HPC monitoring efforts,
+contrasted with SOSflow.
+%
+Though there is inevitably some overlap, projects are grouped into
+the category that the they primarly serve.
+%
+\subsection{System Monitoring}
+%
+...
+%
+\subsection{Application Monitoring}
+%
+...
+%
+\subsection{Science Monitoring}
+%
+...
 %
 \par
 %

@@ -21,6 +21,7 @@ void do_fork(std::string forkCommand) {
     if (rc < 0) {
         perror("\nError in execvp");
     }
+    free(args);
     // exit the daemon spawn!
     std::cout << "Daemon exited!" << std::endl;
     _exit(0);
@@ -121,6 +122,7 @@ void fork_exec_sosd(void) {
         }
         host_index = host_index + hostlength;
     }
+    free(allhostnames);
     // fork the daemon
     if (_commrank == _daemon_rank) {
         _shutdown_daemon = true;
