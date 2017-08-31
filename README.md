@@ -15,9 +15,12 @@ You will also need to use this version of TAU (for now): [http://www.nic.uoregon
 
 ### To configure and install SOS (quick):
 
+NOTE: Use this commit of SOS_flow: 45efaece03fc27348c93c8eff85206e068e070fd
+
 ```
 git clone https://github.com/cdwdirect/sos_flow.git
 cd sos_flow
+git checkout 45efaece03fc27348c93c8eff85206e068e070fd
 source hosts/linux/setenv.sh
 ./scripts/configure.sh -c
 cd build-linux
