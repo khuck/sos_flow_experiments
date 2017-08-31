@@ -4,6 +4,13 @@ This repository contains several examples that use SOS and/or TAU for runtime mo
 
 SOS has an optional dependency on EVPath. Several of the workflows use ADIOS.  For specific information on installing ADIOS and its dependencies (i.e. EVPath), see [https://www.olcf.ornl.gov/center-projects/adios/](https://www.olcf.ornl.gov/center-projects/adios/).  In the instructions below, the "CHAOS" path is the set of dependencies for ADIOS (EVPath, etc.)
 
+# Building ADIOS for Pooky event extraction
+
+When working with ADIOS applications, you should use this version of ADIOS (for now): [https://github.com/khuck/ADIOS] (https://github.com/khuck/ADIOS).  It includes support for extracting the dimensions at each adios_write call.
+
+NOTE:
+You will also need to use this version of TAU (for now): [http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz] (http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz).  
+
 # Building SOS_flow
 
 ### To configure and install SOS (quick):
@@ -52,8 +59,8 @@ make && make install
 To configure & build TAU, use this patched version of TAU: [http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz](http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz).  The paths to SOS and ADIOS are examples, please modify for your filesystem.
 
 ```
-wget http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz
-tar -xvzf http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz
+wget http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz
+tar -xvzf http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz
 cd tau2-git-latest
 ./configure -adios=/home/khuck/src/chaos/adios/ADIOS-gcc -sos=/home/khuck/src/sos_flow/build-linux -pdt=/usr/local/packages/pdt/3.23 -mpi -pthread
 ```
