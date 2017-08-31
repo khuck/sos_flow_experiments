@@ -2,7 +2,8 @@
 set -x
 
 origdir=`pwd`
-rootdir=/home/khuck/src/MONA/testdir
+# rootdir=/home/khuck/src/MONA/testdir
+rootdir=/home/khuck/src/sos_flow_experiments/Junmin/testdir
 
 clean()
 {
@@ -30,7 +31,7 @@ setup()
 	cp $HOME/src/sos_flow/build-linux/bin/sosd_stop ${rootdir}
 
 	# copy the ADIOS library
-	cp $HOME/src/chaos/linux-gcc/lib/libenet.so* ${rootdir}
+	#cp $HOME/src/chaos/linux-gcc/lib/libenet.so* ${rootdir}
 }
 
 submit()

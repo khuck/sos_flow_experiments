@@ -4,7 +4,7 @@
 
 #define MATRIX_SIZE 1024
 const int max_iterations = 50;
-const double increment_divisor = 1.0/max_iterations;
+const double increment_divisor = 0.01; /* add/subtract 1% each time */
 int NRA = MATRIX_SIZE; /* number of rows in matrix A */
 int NCA = MATRIX_SIZE; /* number of columns in matrix A */
 int NCB = MATRIX_SIZE; /* number of columns in matrix B */
@@ -60,27 +60,25 @@ void compute(double **a, double **b, double **c, int rows_a, int cols_a, int col
 #define increment int((MATRIX_SIZE)*increment_divisor)
 
 double do_work(int i) {
-  double **a,           /* matrix A to be multiplied */
+  double **a,    /* matrix A to be multiplied */
   **b,           /* matrix B to be multiplied */
   **c;           /* result matrix C */
+  int tmp = MATRIX_SIZE;
 
   // upper ranks get an increase in work each iteration
   if ((i > 0) && (!_balanced)) {
     if (_commrank >= (_commsize / 2)) {
-      NRA = std::min(int(MATRIX_SIZE*1.25),(NRA + increment));
-      NCA = std::min(int(MATRIX_SIZE*1.25),(NCA + increment));
-      NCB = std::min(int(MATRIX_SIZE*1.25),(NCB + increment));
+      tmp = std::min(int(MATRIX_SIZE*1.25),(NRA + increment));
     } else {
-      NRA = std::max(int(MATRIX_SIZE*0.75),(NRA - increment));
-      NCA = std::max(int(MATRIX_SIZE*0.75),(NCA - increment));
-      NCB = std::max(int(MATRIX_SIZE*0.75),(NCB - increment));
+      tmp = std::max(int(MATRIX_SIZE*0.75),(NRA - increment));
     }
   } else {
-    NRA = MATRIX_SIZE;
-    NCA = MATRIX_SIZE;
-    NCB = MATRIX_SIZE;
     _balanced=false;
   }
+  sample_value("Matrix Size", double(tmp*tmp*tmp));
+  NRA = tmp;
+  NCA = tmp;
+  NCB = tmp;
   //std::cout << _commrank << ": MATRIX SIZE: " << NRA << std::endl; fflush(stdout);
 
   a = allocateMatrix(NRA, NCA);

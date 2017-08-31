@@ -2,6 +2,7 @@
 #include "system.h"
 #include <regex>
 #include <sys/stat.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -214,8 +215,8 @@ void ProcData::sample_values(void) {
   sample_value("Generation", generation);
 #endif
 #if defined(APEX_HAVE_POWERCAP_POWER)
-  sample_value("Package-0 Energy", package0);
-  sample_value("DRAM Energy", dram);
+  sample_value("Package-0 Energy", std::max(package0,0LL));
+  sample_value("DRAM Energy", std::max(dram,0LL));
 #endif
 }
 
