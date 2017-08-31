@@ -56,12 +56,12 @@ make && make install
 
 ### Building TAU
 
-To configure & build TAU, use this patched version of TAU: [http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz](http://www.nic.uoregon.edu/~khuck/tau2-git-latest.tar.gz).  The paths to SOS and ADIOS are examples, please modify for your filesystem.
+To configure & build TAU, use this patched version of TAU: [http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz](http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz).  The paths to SOS and ADIOS are examples, please modify for your filesystem.
 
 ```
 wget http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz
 tar -xvzf http://www.nic.uoregon.edu/~khuck/tau2-git-pooky.tar.gz
-cd tau2-git-latest
+cd tau2-git-pooky
 ./configure -adios=/home/khuck/src/chaos/adios/ADIOS-gcc -sos=/home/khuck/src/sos_flow/build-linux -pdt=/usr/local/packages/pdt/3.23 -mpi -pthread
 ```
 
