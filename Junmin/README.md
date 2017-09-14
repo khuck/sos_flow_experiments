@@ -85,7 +85,17 @@ that ADIOS is a static library, and TAU needs to overwrite one weak symbol in th
 ADIOS library).  The weak symbol overwriting happens if the strong definition is
 resolved in the TAU library before the weak one in the ADIOS library.  For examples,
 see [ImpactTv1betaAdios/Makefile.tau](ImpactTv1betaAdios/Makefile.tau) and/or 
-[readerFull/compile.tau](readerFull/compile.tau).
+[readerFull/compile.tau](readerFull/compile.tau). Also, for tau_cc.sh to work
+you will need to make sure TAU is in your path, and the TAU_MAKEFILE variable
+is set:
+
+```
+TAU_ROOT=/ccs/proj/csc143/tau
+TAU_ARCH=craycnl
+TAU_CONFIG=tau-gnu-mpi-pthread-pdt-sos-adios
+export TAU_MAKEFILE=${TAU_ROOT}/${TAU_ARCH}/lib/Makefile.${TAU_CONFIG}
+export PATH=${TAU_ROOT}/${TAU_ARCH}/bin:${PATH}
+```
 
 # Todo: 
 
