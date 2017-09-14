@@ -84,7 +84,8 @@ Making sure that the TAU libraries are before the ADIOS libraries (due to the fa
 that ADIOS is a static library, and TAU needs to overwrite one weak symbol in the
 ADIOS library).  The weak symbol overwriting happens if the strong definition is
 resolved in the TAU library before the weak one in the ADIOS library.  For examples,
-see ImpactTv1betaAdios/Makefile.tau and/or readerFull/compile.tau.
+see [ImpactTv1betaAdios/Makefile.tau](ImpactTv1betaAdios/Makefile.tau) and/or 
+[readerFull/compile.tau](readerFull/compile.tau).
 
 # Todo: 
 
