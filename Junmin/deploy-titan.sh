@@ -2,9 +2,10 @@
 set -x
 
 origdir=`pwd`
-# rootdir=/home/khuck/src/MONA/testdir
-# rootdir=${origdir}/testdir
+# Where are we going to run the application?  Has to be writable by
+# the compute nodes!
 rootdir=/lustre/atlas/proj-shared/csc143/khuck/testdir
+# Where is SOS installed?
 sosdir=/ccs/proj/csc143/tau/sos_flow
 
 clean()
@@ -17,7 +18,7 @@ setup()
 {
 	# make the working directory
 	if [ ! -d ${rootdir} ] ; then
-		mkdir ${rootdir}
+		mkdir -p ${rootdir}
 	fi
 
 	# copy the executables
@@ -25,8 +26,8 @@ setup()
 	cp readerFull/reader2 ${rootdir}
 
 	# copy the run script
-	# cp tiny/ImpactT.in ${rootdir}
-	# cp tiny/small.r ${rootdir}
+	cp titan/ImpactT.in ${rootdir}
+	cp titan/small.r ${rootdir}
 
 	# copy the SOS daemons
 	cp ${sosdir}/bin/sosd ${rootdir}

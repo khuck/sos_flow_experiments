@@ -6,10 +6,10 @@
 #**************************************************************************
 # Macros defining the Fortran, C/C++ compiler and linker.
 
-COMPILER ?= mpif90 -ffree-line-length-0
+COMPILER ?= mpif90
 ADIOSDIR ?= /home/khuck/src/chaos/adios/ADIOS-gcc
 #LINK = ftn
-FFLAGS = -O2 -g
+FFLAGS = -O2 -g -ffree-line-length-0
 
 #CC = ${COMPILER} -DHAVE_CONFIG_H -I. -I/global/project/projectdirs/m1248/edison/adios-flexpath/adios-1.10.0 -I/project/projectdirs/m1248/SENSEI//ADIOS/src
 #CC = ${COMPILER} -DHAVE_CONFIG_H -I. -I/global/project/projectdirs/m1248/edison/adios-flexpath/adios-1.10.0/src
