@@ -8,17 +8,29 @@ monitoring of a parallel applications and workflows (a pipeline, really).
 TAU, SOS, etc. are installed on titan in /ccs/proj/csc143/tau.  To build
 and run this example on titan, get this code from github and do the following:
 
-1) run build-titan.sh to build xmain and reader2, the two applications in the
+1) Set your environment with the following:
+
+```
+module swap PrgEnv-pgi PrgEnv-gnu
+module load cudatoolkit
+module load papi
+module load cmake
+module load flexpath/1.12
+module load adios/1.12.0
+module load python/2.7.9
+```
+
+2) run build-titan.sh to build xmain and reader2, the two applications in the
 pipeline.
 
-2) modify deploy-titan.sh to change the location of ${rootdir}.  Make sure that
+3) modify deploy-titan.sh to change the location of ${rootdir}.  Make sure that
 it is a writable directory from the compute nodes!
 
-3) run deploy-titan.sh to copy everything to the execution directory (${rootdir})
+4) run deploy-titan.sh to copy everything to the execution directory (${rootdir})
 
-4) cd to the execution directory
+5) cd to the execution directory
 
-5) qsub small.r
+6) qsub small.r
 
 # Output
 
