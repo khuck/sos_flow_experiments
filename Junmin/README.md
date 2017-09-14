@@ -62,6 +62,28 @@ There should be the following relevant output:
 * sosd.0000[1-5].db - a sqlite3 database containing the performance data from 
 each listener
 
+# Great! Now what? I want to use it with my pipeline/workflow/etc.:
+
+Read the copious comments in small.r for instructions on how to add SOS to your
+launch process (i.e. Swift, Cheetah, PBS script, etc.). As for linking SOS/TAU
+into your application(s), it is straightforward.  If you are using ADIOS,
+change this line in your Makefile/configuration from this:
+
+```
+$(shell ${ADIOSDIR}/bin/adios_config -l -f)
+```
+
+to this:
+
+```
+$(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f)
+```
+
+Making sure that the TAU libraries are before the ADIOS libraries (due to the fact
+that ADIOS is a static library, and TAU needs to overwrite one weak symbol in the
+ADIOS library).  The weak symbol overwriting happens if the strong definition is
+resolved in the TAU library before the weak one in the ADIOS library.
+
 # Todo: 
 
 We will soon be adding an SOS analysis node that will extract the performance
