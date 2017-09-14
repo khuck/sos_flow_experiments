@@ -64,7 +64,7 @@ each listener
 
 # Great! Now what? I want to use it with my pipeline/workflow/etc.:
 
-Read the copious comments in small.r for instructions on how to add SOS to your
+Read the copious comments in small.r (https://github.com/khuck/sos_flow_experiments/blob/master/Junmin/titan/small.r)[https://github.com/khuck/sos_flow_experiments/blob/master/Junmin/titan/small.r] for instructions on how to add SOS to your
 launch process (i.e. Swift, Cheetah, PBS script, etc.). As for linking SOS/TAU
 into your application(s), it is straightforward.  If you are using ADIOS,
 change this line in your Makefile/configuration from this:
