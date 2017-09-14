@@ -1,4 +1,4 @@
-# sos_flow_experiments
+# ADIOS writer / reader example using TAU, SOS and ADIOS callbacks
 
 This repository contains one example that uses SOS and TAU for runtime
 monitoring of a parallel applications and workflows (a pipeline, really).
