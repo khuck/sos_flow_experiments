@@ -82,7 +82,8 @@ $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f)
 Making sure that the TAU libraries are before the ADIOS libraries (due to the fact
 that ADIOS is a static library, and TAU needs to overwrite one weak symbol in the
 ADIOS library).  The weak symbol overwriting happens if the strong definition is
-resolved in the TAU library before the weak one in the ADIOS library.
+resolved in the TAU library before the weak one in the ADIOS library.  For examples,
+see ImpactTv1betaAdios/Makefile.tau and/or readerFull/compile.tau.
 
 # Todo: 
 
