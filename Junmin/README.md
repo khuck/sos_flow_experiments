@@ -5,7 +5,7 @@ monitoring of a parallel applications and workflows (a pipeline, really).
 
 # Configuration
 
-TAU, SOS, etc. are installed on titan in /ccs/proj/csc143/tau.  To build
+TAU, SOS, etc. are installed on titan in /ccs/proj/csc143/CODAR_Demo/titan.gnu/tau.  To build
 and run this example on titan, get this code from github and do the following:
 
 1) Set your environment with the following:
@@ -90,7 +90,7 @@ you will need to make sure TAU is in your path, and the TAU_MAKEFILE variable
 is set:
 
 ```
-TAU_ROOT=/ccs/proj/csc143/tau
+TAU_ROOT=/ccs/proj/csc143/CODAR_Demo/titan.gnu/tau
 TAU_ARCH=craycnl
 TAU_CONFIG=tau-gnu-mpi-pthread-pdt-sos-adios
 export TAU_MAKEFILE=${TAU_ROOT}/${TAU_ARCH}/lib/Makefile.${TAU_CONFIG}

@@ -6,7 +6,7 @@ origdir=`pwd`
 # the compute nodes!
 rootdir=/lustre/atlas/proj-shared/csc143/khuck/testdir
 # Where is SOS installed?
-sosdir=/ccs/proj/csc143/tau/sos_flow
+sosdir=/ccs/proj/csc143/CODAR_Demo/titan.gnu/sos_flow
 
 clean()
 {
@@ -38,10 +38,10 @@ setup()
 submit()
 {
 	cd ${rootdir}
-	#qsub ./small.r
+	qsub ./small.r
 	cd ${origdir}
 }
 
-#clean
+clean
 setup
-#submit
+# submit
