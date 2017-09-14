@@ -30,7 +30,7 @@ pipeline.
 3) modify deploy-titan.sh to change the location of ${rootdir}.  Make sure that
 it is a writable directory from the compute nodes!
 
-4) run deploy-titan.sh to copy everything to the execution directory (${rootdir})
+4) run deploy-titan.sh to copy a simple example to the execution directory (${rootdir})
 
 ```
 ./deploy-titan.sh
