@@ -22,7 +22,7 @@ else ifeq ($(BUILDDIR),build-falcon)
   CXX=mpicxx
   CXX_STD_FLAG=-std=c++0x 
 else
-  SOSDIR=$(HOME)/src/sos_flow/build-titan
+  SOSDIR=/ccs/proj/csc143/CODAR_Demo/titan.gnu/sos_flow
   CC=cc
   CXX=CC
   POWER_FLAG=

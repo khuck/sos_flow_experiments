@@ -6,15 +6,21 @@
 #PBS -l walltime=0:10:00,nodes=257
 
 # set up the environment
-. $HOME/src/sos_flow/hosts/ornl/titan/setenv.sh
+module swap PrgEnv-pgi PrgEnv-gnu
+module load cudatoolkit
+module load papi
+module load cmake
+module load flexpath/1.12
+module load adios/1.12.0
+module load python/2.7.9
 
 workdir=$PROJWORK/csc103/khuck/sos_flow_experiments
 mkdir -p $workdir
-cp $HOME/src/sos_flow/build-titan/bin/sosd $workdir/.
-cp $HOME/src/sos_flow/build-titan/bin/showdb $workdir/.
-cp $HOME/src/sos_flow_experiments/call_and_response/main $workdir/.
-cp $HOME/src/sos_flow_experiments/call_and_response/cleanup.sh $workdir/.
-cp $HOME/src/sos_flow_experiments/call_and_response/spawn_aggregators.sh $workdir/.
+cp /ccs/proj/csc143/CODAR_Demo/titan.gnu/sos_flow/bin/sosd $workdir/.
+cp /ccs/proj/csc143/CODAR_Demo/titan.gnu/sos_flow/bin/showdb $workdir/.
+cp /ccs/proj/csc143/khuck/src/sos_flow_experiments/call_and_response/main $workdir/.
+cp /ccs/proj/csc143/khuck/src/sos_flow_experiments/call_and_response/cleanup.sh $workdir/.
+cp /ccs/proj/csc143/khuck/src/sos_flow_experiments/call_and_response/spawn_aggregators.sh $workdir/.
 cd $workdir
 
 hostname=`hostname`
@@ -32,7 +38,8 @@ else
 export SOS_WORK=/tmp
 fi
 
-export sos_cmd="${sosbin}/sosd -l ${num_listeners} -a ${aggregators} -w ${SOS_WORK}"
+export sos_cmd_part="${sosbin}/sosd -l ${num_listeners} -a ${aggregators} "
+export sos_cmd="${sos_cmd_part} -w ${SOS_WORK}"
 if [ ${num_listeners} == 0 ] ; then
   export SOS_FORK_COMMAND="${sos_cmd} -k @LISTENER_RANK@ -r aggregator"
   export SOS_LISTENER_RANK_OFFSET=0
@@ -51,7 +58,7 @@ sleep 2
 
 # launch our aggregator(s)
 #aprun -n 1 -N 1 -d 4 ${sos_cmd} -k 0 -r aggregator &
-aprun -n 1 -N 1 -d 8 ./spawn_aggregators.sh ${sos_cmd} -r aggregator &
+aprun -n 1 -N 1 -d 8 ./spawn_aggregators.sh ${sos_cmd_part} -w ${workdir} -r aggregator &
 sleep 2
 
 # launch the application

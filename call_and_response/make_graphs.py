@@ -140,9 +140,9 @@ def do_chart(subplot, c, ranks, ranks2, group_column, metric, plot_title, y_labe
             sql_statement = (sql_statement + " like '" + str(r) + "' and tblvals.val not like '-%' order by tblvals.time_pack;")
 
         #params = [metric,r]
-        print "Executing query: ", sql_statement,
+        print ("Executing query: ", sql_statement,)
         try_execute(c, sql_statement)
-        print "Done. "
+        print ("Done. ")
 
         #print("Fetching rows.")
         all_rows = c.fetchall()
