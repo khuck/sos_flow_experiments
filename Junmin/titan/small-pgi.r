@@ -23,12 +23,10 @@ echo ${cwd}
 date
 
 # load modules
-module swap PrgEnv-pgi PrgEnv-gnu
+module swap pgi pgi/17.7.0
 module load cudatoolkit
 module load papi
 module load cmake
-module load flexpath/1.12
-#module load adios/1.12.0
 module load python/2.7.9
 
 # set some output file names

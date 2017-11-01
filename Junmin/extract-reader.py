@@ -3,10 +3,6 @@ import os
 import sys
 import sqlite3
 import numpy as np
-#import pylab as pl
-import time
-import random
-#import matplotlib.pyplot as plt
 import yaml
 from collections import  OrderedDict
 
@@ -144,8 +140,8 @@ def open_connection(filename):
     # check for file to exist
     print ("Checking for file: ", sqlite_file)
     while not os.path.exists(sqlite_file):
-        print ("Waiting on file: ", sqlite_file)
-        time.sleep(1)
+        print ("Database file does not exist: ", sqlite_file)
+        sys.exit(1)
 
     print("Connecting to: ", sqlite_file)
     # Connecting to the database file
@@ -156,18 +152,14 @@ def open_connection(filename):
     #url = 'file:' + sqlite_file
     #conn = sqlite3.connect(url, uri=True)
     conn.isolation_level=None
+    conn.text_factory = bytes
     c = conn.cursor()
-    #c.execute('PRAGMA journal_mode=WAL;')
-    #c.execute('PRAGMA synchronous   = ON;')
-    #c.execute('PRAGMA cache_size    = 31250;')
-    #c.execute('PRAGMA cache_spill   = FALSE;')
-    #c.execute('PRAGMA temp_store    = MEMORY;')
     return c
 
 # wrapper around queries, for error handling
 def try_execute(c, statement, parameters=None):
     success = False
-    #print(statement)
+    print(statement)
     while not success:
         try:
             if parameters:
@@ -195,7 +187,7 @@ def get_ranks(c,application):
 
 # Get the GUIDs for the MPI Collective events, for this publisher GUID (i.e. for this rank).
 def get_mpi_collective_guid(pg):
-    sql_statement = ("select guid from tblData where pub_guid = " + str(pg) + " and name like 'TAU_EVENT::MPI collective%';")
+    sql_statement = ("select guid from tblData where pub_guid = " + str(pg) + " and name like 'MPI collective%';")
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     guid = np.array([x[0] for x in all_rows])
@@ -208,7 +200,7 @@ def get_mpi_collective_guid(pg):
 
 # Get the GUIDs for the ADIOS WRITE  events, for this publisher GUID (i.e. for this rank).
 def get_adios_write_guid(pg):
-    sql_statement = ("select guid from tblData where pub_guid = " + str(pg) + " and name like 'TAU_EVENT::adios_%';")
+    sql_statement = ("select guid from tblData where pub_guid = " + str(pg) + " and name like 'ADIOS %';")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
@@ -222,15 +214,24 @@ def get_adios_write_guid(pg):
 
 # get the time range of interest.  It is three of the last four iterations, ignoring
 # the last one that could be bogus.
+def get_advance_step_range(application, limit, order):
+    sql_statement = "select time_pack from viewCombined where value_name like 'TAU_EVENT::adios_advance_step%' and comm_rank = 0 and prog_name like '%reader2' order by time_pack " + order + " limit " + str(limit) + ";"
+    try_execute(c,sql_statement);
+    all_rows = c.fetchall()
+    times = np.array([x[0] for x in all_rows])
+    return(times[0],times[limit-1])
+
+# get the time range of interest.  It is three of the last four iterations, ignoring
+# the last one that could be bogus.
 def get_time_range(pg):
     limit = 2
-    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_close%' and tbldata.pub_guid = " + str(pg) + " order by time_pack desc limit " + str(limit) + ";")
+    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'ADIOS close%' and tbldata.pub_guid = " + str(pg) + " order by time_pack desc limit " + str(limit) + ";")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     closes = np.array([x[2] for x in all_rows])
     #print("closes:",closes)
-    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_open%' and tbldata.pub_guid = " + str(pg) + " order by time_pack desc limit " + str(limit) + ";")
+    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'ADIOS open%' and tbldata.pub_guid = " + str(pg) + " order by time_pack desc limit " + str(limit) + ";")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
@@ -242,13 +243,13 @@ def get_time_range(pg):
 # get the time range of interest for ADIOS calls.  It is the first iteration.
 def get_time_range_adios(pg):
     limit = 1
-    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_close%' and tbldata.pub_guid = " + str(pg) + " order by time_pack asc limit " + str(limit) + ";")
+    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'ADIOS close%' and tbldata.pub_guid = " + str(pg) + " order by time_pack asc limit " + str(limit) + ";")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     closes = np.array([x[2] for x in all_rows])
     #print("closes:",closes)
-    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_open%' and tbldata.pub_guid = " + str(pg) + " order by time_pack asc limit " + str(limit) + ";")
+    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'ADIOS open%' and tbldata.pub_guid = " + str(pg) + " order by time_pack asc limit " + str(limit) + ";")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
@@ -268,6 +269,25 @@ def get_mpi_exchanges(mpi_guid,limit,time_start,time_end):
     starts = np.array([x[0] for x in all_rows])
     ends = np.array([x[1] for x in all_rows])
     names = np.array([x[2] for x in all_rows])
+    return starts,ends,names
+
+# Get the last n start and stop timestamps for all MPI collective events for this rank. 
+# First, sort them by "most recent first", then take those n rows and reverse the order 
+# so we have them in chronological order.
+def get_trace_events(application, time_start,time_end):
+    start_cond = ""
+    end_cond = ""
+    if time_start != 0:
+        start_cond = " and time_pack > " + repr(time_start)
+    if time_end != 0:
+        end_cond = " and time_pack <= " + repr(time_end)
+    sql_statement = ("select value_name, time_pack-value, time_pack from viewCombined where value_name like 'TAU_EVENT::%' and comm_rank = 0 and prog_name like '%" + application + "'" + start_cond + end_cond + " order by time_pack asc;")
+    #print(sql_statement)
+    try_execute(c,sql_statement);
+    all_rows = c.fetchall()
+    names = np.array([x[0] for x in all_rows])
+    starts = np.array([x[1] for x in all_rows])
+    ends = np.array([x[2] for x in all_rows])
     return starts,ends,names
 
 # Get the last n start and stop timestamps for all ADIOS write events for this rank. 
@@ -316,15 +336,15 @@ def setup_yaml():
     represent_dict_order = lambda self, data:  self.represent_mapping('tag:yaml.org,2002:map', data.items())
     yaml.add_representer(OrderedDict, represent_dict_order)    
 
-def get_comm_yaml(op_list):
+def get_comm_yaml(application,op_list):
     global comm_dict
-    sql_statement = ("select distinct tbldata.name from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'TAU_EVENT::MPI_Comm%' or tbldata.name like 'TAU_EVENT::MPI_Cart%') and tblpubs.prog_name like '%xmain';")
+    sql_statement = ("select distinct tbldata.name from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'MPI_Comm%' or tbldata.name like 'MPI_Cart%') and tblpubs.prog_name like '%" + application + "';")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     commands = np.array([x[0] for x in all_rows])
     for com in commands:
-        print(com)
+        #print(com)
         tmp = com.split(' ',1)
         name = tmp[0]
         tmp2 = tmp[1].rsplit(' ',1)
@@ -356,7 +376,16 @@ def get_comm_yaml(op_list):
         #my_dict["result_value"] = str(comm_value)
         my_dict["result"] = str(comm_name)
         op_list.append(my_dict)
-    print comm_dict
+    if len(commands) == 0:
+        sql_statement = ("select distinct value_name from viewCombined where value_name like 'TAU_EVENT::MPI%' and prog_name like '%" + application + "' order by time_pack asc limit 1;")
+        try_execute(c,sql_statement);
+        all_rows = c.fetchall()
+        commands = np.array([x[0] for x in all_rows])
+        for com in commands:
+            tokens = com.split(" ")
+            # get the last token, that's the communicator
+            comm_value = tokens[-1]
+            comm_dict[comm_value] = "MPI_COMM_WORLD"
 
 def get_adios_yaml(names,op_list):
     short = ''
@@ -379,18 +408,10 @@ def get_adios_yaml(names,op_list):
             rest = arg[3].rsplit(',',1)
             #print(arg[3],rest)
             if ndims > 0:
-                if ';' in rest[0]:
-                    if rest[0].startswith('[[') and rest[0].endswith(']]'):
-                        rest[0] = rest[0][1:-1]
-                    dims = rest[0].strip(',').split(';')
-                    var_dict["local_dims"] = str(dims[0])
-                    var_dict["global_dims"] = str(dims[1])
-                    var_dict["local_offsets"] = str(dims[2])
-                else:
-                    if rest[0].startswith('[') and rest[0].endswith(']'):
-                        rest[0] = rest[0][1:-1]
-                    #var_dict["local_dims"] = str(rest[0].strip('[',1).strip(']',1).strip(','))
-                    var_dict["local_dims"] = str(rest[0].strip(','))
+                if rest[0].startswith('[') and rest[0].endswith(']'):
+                    rest[0] = rest[0][1:-1]
+                #var_dict["local_dims"] = str(rest[0].strip('[',1).strip(']',1).strip(','))
+                var_dict["local_dims"] = str(rest[0].strip(','))
             else:
                 var_dict["local_dims"] = ""
                 var_dict["value"] = int(rest[1])
@@ -398,6 +419,59 @@ def get_adios_yaml(names,op_list):
     my_dict["vars"] = my_vars
     op_list.append(my_dict)
 
+def get_combined_yaml(starts,ends,names,op_list,maxv):
+    global comm_dict
+    # anything within 50% of the biggest cluster is a real compute region
+    threshold = float(maxv) * 0.5
+    previous_end = 0
+    for s,e,n in zip(starts,ends,names):
+        if "MPI" in n:
+            #print n
+            if previous_end > 0:
+                possible_compute = float(s) - float(previous_end)
+                if possible_compute > threshold:
+                    # do some compute
+                    my_dict = OrderedDict()
+                    my_dict["type"] = str("compute")
+                    my_dict["time"] = str(possible_compute)
+                    op_list.append(my_dict)
+            previous_end = e
+            short = ''
+            my_dict = OrderedDict()
+            if 'collective exchange' in n:
+                short = n.replace('TAU_EVENT::MPI collective exchange ','MPI_')
+                tmp = short.split(' ',2)
+                my_dict["type"] = str(tmp[0])
+                my_dict["num_bytes"] = int(tmp[1].strip('(').rstrip(')'))
+                comm_name = str(tmp[2].strip())
+                if str(tmp[2].strip()) in comm_dict:
+                    comm_name = comm_dict[str(tmp[2].strip())]
+                my_dict["comm"] = str(comm_name)
+            if 'collective synchronize' in n:
+                short = n.replace('TAU_EVENT::MPI collective synchronize ','MPI_')
+                tmp = short.split(' ',1)
+                my_dict["type"] = str(tmp[0])
+                comm_name = "MPI_COMM_WORLD"
+                if str(tmp[1].strip()) in comm_dict:
+                    comm_name = comm_dict[str(tmp[1].strip())]
+                my_dict["comm"] = str(comm_name)
+            op_list.append(my_dict)
+        else:
+            var_dict = OrderedDict()
+            tokens = n.split('(',1)
+            var_dict["type"] = tokens[0].replace("TAU_EVENT::","")
+            args = tokens[1].rstrip(')')
+            if len(args) > 0:
+                if "comm: " in args:
+                    for key in comm_dict:
+                        args = args.replace(str(key), comm_dict[key])
+                tokens = args.split(', ')
+                for t in tokens:
+                    t = t.strip()
+                    left_right = t.split(':',1)
+                    var_dict[left_right[0].strip()] = left_right[1].strip().replace("'","")
+                op_list.append(var_dict)
+     
 def get_mpi_yaml(starts,ends,names,op_list,maxv):
     global comm_dict
     # anything within 50% of the biggest cluster is a real compute region
@@ -416,26 +490,18 @@ def get_mpi_yaml(starts,ends,names,op_list,maxv):
         previous_end = e
         short = ''
         my_dict = OrderedDict()
-        if 'collective exchangev' in n:
-            short = n.replace('TAU_EVENT::MPI collective exchangev ','MPI_')
-            tmp = short.split(' ',2)
-            my_dict["type"] = str(tmp[0])
-            my_dict["num_bytes"] = str(tmp[1].strip('(').rstrip(')'))
-            comm_name = str(tmp[2].strip())
-            if str(tmp[2].strip()) in comm_dict:
-                comm_name = comm_dict[str(tmp[2].strip())]
-            my_dict["comm"] = str(comm_name)
-        elif 'collective exchange' in n:
-            short = n.replace('TAU_EVENT::MPI collective exchange ','MPI_')
+        if 'collective exchange' in n:
+            short = n.replace('MPI collective exchange ','MPI_')
             tmp = short.split(' ',2)
             my_dict["type"] = str(tmp[0])
             my_dict["num_bytes"] = int(tmp[1].strip('(').rstrip(')'))
             comm_name = str(tmp[2].strip())
+            comm_name = "MPI_COMM_WORLD"
             if str(tmp[2].strip()) in comm_dict:
                 comm_name = comm_dict[str(tmp[2].strip())]
             my_dict["comm"] = str(comm_name)
-        elif 'collective synchronize' in n:
-            short = n.replace('TAU_EVENT::MPI collective synchronize ','MPI_')
+        if 'collective synchronize' in n:
+            short = n.replace('MPI collective synchronize ','MPI_')
             tmp = short.split(' ',1)
             my_dict["type"] = str(tmp[0])
             comm_name = "MPI_COMM_WORLD"
@@ -446,6 +512,11 @@ def get_mpi_yaml(starts,ends,names,op_list,maxv):
 
 setup_yaml()
 
+if len(sys.argv) != 3:
+    print("Usage: brute-force.py <database> <executable-name>")
+    print("Example: ./brute-force.py sosd.00000.db reader2")
+    sys.exit(0)
+
 # name of the sqlite database file
 sqlite_file = sys.argv[1]
 application = sys.argv[2]
@@ -453,7 +524,28 @@ application = sys.argv[2]
 # open the connection
 c = open_connection(sqlite_file)
 
-rows=150
+# First, get the start time of the first and second advance_step calls
+first, second = get_advance_step_range(application,2, "asc")
+
+# Then get the list of events that happened before the first advance step call
+init_starts,init_ends,init_names = get_trace_events(application,0,first)
+
+# Then get the list of events that happened between the first and second advance_step calls
+loop_starts,loop_ends,loop_names = get_trace_events(application,first,second)
+
+# remove the overlap to get the initialization phase
+init_len = len(init_names)
+loop_len = len(loop_names)
+new_init_len = init_len - loop_len
+init_starts = init_starts[:new_init_len]
+init_ends = init_ends[:new_init_len]
+init_names = init_names[:new_init_len]
+
+# get the last advance_step call
+last, next_to_last = get_advance_step_range(application,2, "desc")
+
+# get the finalization steps
+fini_starts,fini_ends,fini_names = get_trace_events(application,last,0)
 
 # get the publisher guids, ranks
 pub_guids,ranks = get_ranks(c, application)
@@ -461,80 +553,32 @@ pub_guids,ranks = get_ranks(c, application)
 # populate the YAML
 master_dict=OrderedDict()
 master_dict["ranks"] = len(ranks)
-op_list = []
-get_comm_yaml(op_list)
-master_dict["op_list"] = op_list
+init_op_list = []
+loop_op_list = []
+fini_op_list = []
+get_comm_yaml(application,init_op_list)
 
-# declare some arrays for averaging across ranks
-mean_arrivals = np.zeros(len(pub_guids))
-last_windows = np.zeros(len(pub_guids))
-next_windows = np.zeros(len(pub_guids))
-all_starts = np.zeros(len(pub_guids)*rows)
-all_ends = np.zeros(len(pub_guids)*rows)
-index = 0;
-no_yaml = True
-# do this in parallel when in C!
-for pg in pub_guids:
-    # get guid for MPI collectives
-    mpi_guid = get_mpi_collective_guid(pg)
-    # get the time range
-    time_start,time_end = get_time_range(pg)
-    # Get the start, stop times for last n MPI Collectives
-    starts,ends,names = get_mpi_exchanges(mpi_guid,str(rows),time_start,time_end)
-    j = 0
-    for s,e in zip(starts,ends):
-        all_starts[(rows*index)+j] = s
-        all_ends[(rows*index)+j] = e
-        j = j + 1
-    # How long are the compute windows?
-    durations = find_gap_between_timestamps(starts,ends)
-    #print(durations)
-    print "clustering..."
-    clusters=[1]
-    numclust=1
-    maxc=1
-    maxv=durations[0]
-    if len(durations) > 1:
-        clusters,numclust,maxc,maxv = dbscan_vector(durations, 0.5, 2)
-    print numclust
-    #print durations
-    print clusters,numclust,maxc,maxv
-    if no_yaml:
-        no_yaml = False
-        get_mpi_yaml(starts,ends,names,op_list,maxv)
-    adios_guid = get_adios_write_guid(pg)
-    adios_start,adios_end = get_time_range_adios(pg)
-    adios_names = get_adios_writes(adios_guid,str(rows),adios_start,adios_end)
-    get_adios_yaml(adios_names,op_list)
-    # Quit now, for now.
-    break
-    # What is the periodicity of the windows?
-    # filter out any durations not in the largest cluster values
-    if numclust > 1:
-        newstarts = []
-        newends = []
-        newdurations = []
-        for i in range(0,len(clusters)):
-            if clusters[i] == maxc:
-                newstarts.append(starts[i])
-                newends.append(ends[i])
-                newdurations.append(durations[i])
-        starts = newstarts
-        ends = newends
-        durations = newdurations
-        #print('durations:', durations)
-        # STart over, just with the largest windows.
-        # How long are the compute windows?
-        # durations = find_gap_between_timestamps(starts,ends)
-    periods = find_gap_between_timestamps(ends,ends)
-    last_windows[index] = np.max(ends)
-    next_windows[index] = np.mean(periods)
-    #find_nth_percentile(durations,70)
-    means,medians = reject_outliers(np.array(durations))
-    #means = durations
-    mean_arrivals[index] = np.mean(means)
-    index = index + 1
+# How long are the compute windows?
+durations = find_gap_between_timestamps(loop_starts,loop_ends)
+#print(maxv=durations[0]
+if len(durations) > 1:
+    clusters,numclust,maxc,maxv = dbscan_vector(durations, 0.5, 2)
+print numclust
+#print durations
+print clusters,numclust,maxc,maxv
 
+# add the init phase to YAML
+get_combined_yaml(init_starts,init_ends,init_names,init_op_list,maxv)
+master_dict["init_op_list"] = init_op_list
+# add the loop phase to YAML
+
+get_combined_yaml(loop_starts,loop_ends,loop_names,loop_op_list,maxv)
+master_dict["loop_op_list"] = loop_op_list
+# add the fini phase to YAML
+get_combined_yaml(fini_starts,fini_ends,fini_names,fini_op_list,maxv)
+master_dict["fini_op_list"] = fini_op_list
+
+# write the YAML
 outfile = open('output.yaml','w')
 yaml.dump(master_dict,outfile,default_flow_style=True)
 outfile.close

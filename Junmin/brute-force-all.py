@@ -104,10 +104,10 @@ def dbscan_vector(vector, eps, min_points):
             distances.append(np.abs(vector[i] - vector[j]))
     # make an autobinning histogram of the values
     """
-    print vector
+    #print vector
     hist,binedges = np.histogram(vector,bins='rice')
-    print hist
-    print binedges
+    #print hist
+    #print binedges
     right = 0.0
     left = 0.0
     foundright = False
@@ -120,7 +120,7 @@ def dbscan_vector(vector, eps, min_points):
             left = binedges[i+1]
             eps = right - left
             break
-    print("eps: ",eps)
+    #print("eps: ",eps)
     clusters = dbscan(m, eps, min_points)
     # found out which cluster has largest values
     subclust = {}
@@ -324,7 +324,7 @@ def get_comm_yaml(op_list):
     all_rows = c.fetchall()
     commands = np.array([x[0] for x in all_rows])
     for com in commands:
-        print(com)
+        #print(com)
         tmp = com.split(' ',1)
         name = tmp[0]
         tmp2 = tmp[1].rsplit(' ',1)
@@ -356,7 +356,7 @@ def get_comm_yaml(op_list):
         #my_dict["result_value"] = str(comm_value)
         my_dict["result"] = str(comm_name)
         op_list.append(my_dict)
-    print comm_dict
+    #print comm_dict
 
 def get_adios_yaml(names,op_list):
     short = ''
@@ -366,11 +366,11 @@ def get_adios_yaml(names,op_list):
     my_dict["comm"] = "MPI_COMM_WORLD"
     my_vars = []
     for n in names:
-        print n
+        #print n
         var_dict = OrderedDict()
         tmp = n.split('(',1)
         args = tmp[1].split(')',1)
-        print args
+        #print args
         arg = args[0].split(',',3)
         if len(arg) > 2:
             var_dict["name"] = str(arg[0])
@@ -463,76 +463,46 @@ master_dict=OrderedDict()
 master_dict["ranks"] = len(ranks)
 op_list = []
 get_comm_yaml(op_list)
-master_dict["op_list"] = op_list
+master_dict["init_op_list"] = op_list
+master_dict["iter_op_list"] = []
 
 # declare some arrays for averaging across ranks
 mean_arrivals = np.zeros(len(pub_guids))
 last_windows = np.zeros(len(pub_guids))
 next_windows = np.zeros(len(pub_guids))
-all_starts = np.zeros(len(pub_guids)*rows)
-all_ends = np.zeros(len(pub_guids)*rows)
 index = 0;
-no_yaml = True
 # do this in parallel when in C!
-for pg in pub_guids:
+for pg, rank in zip(pub_guids,ranks):
+    print rank
+    rank_op_list = []
     # get guid for MPI collectives
     mpi_guid = get_mpi_collective_guid(pg)
     # get the time range
     time_start,time_end = get_time_range(pg)
     # Get the start, stop times for last n MPI Collectives
     starts,ends,names = get_mpi_exchanges(mpi_guid,str(rows),time_start,time_end)
-    j = 0
-    for s,e in zip(starts,ends):
-        all_starts[(rows*index)+j] = s
-        all_ends[(rows*index)+j] = e
-        j = j + 1
     # How long are the compute windows?
     durations = find_gap_between_timestamps(starts,ends)
     #print(durations)
-    print "clustering..."
+    #print "clustering..."
     clusters=[1]
     numclust=1
     maxc=1
     maxv=durations[0]
     if len(durations) > 1:
         clusters,numclust,maxc,maxv = dbscan_vector(durations, 0.5, 2)
-    print numclust
+    #print numclust
     #print durations
-    print clusters,numclust,maxc,maxv
-    if no_yaml:
-        no_yaml = False
-        get_mpi_yaml(starts,ends,names,op_list,maxv)
+    #print clusters,numclust,maxc,maxv
+    get_mpi_yaml(starts,ends,names,rank_op_list,maxv)
     adios_guid = get_adios_write_guid(pg)
     adios_start,adios_end = get_time_range_adios(pg)
     adios_names = get_adios_writes(adios_guid,str(rows),adios_start,adios_end)
-    get_adios_yaml(adios_names,op_list)
-    # Quit now, for now.
-    break
-    # What is the periodicity of the windows?
-    # filter out any durations not in the largest cluster values
-    if numclust > 1:
-        newstarts = []
-        newends = []
-        newdurations = []
-        for i in range(0,len(clusters)):
-            if clusters[i] == maxc:
-                newstarts.append(starts[i])
-                newends.append(ends[i])
-                newdurations.append(durations[i])
-        starts = newstarts
-        ends = newends
-        durations = newdurations
-        #print('durations:', durations)
-        # STart over, just with the largest windows.
-        # How long are the compute windows?
-        # durations = find_gap_between_timestamps(starts,ends)
-    periods = find_gap_between_timestamps(ends,ends)
-    last_windows[index] = np.max(ends)
-    next_windows[index] = np.mean(periods)
-    #find_nth_percentile(durations,70)
-    means,medians = reject_outliers(np.array(durations))
-    #means = durations
-    mean_arrivals[index] = np.mean(means)
+    get_adios_yaml(adios_names,rank_op_list)
+    rank_dict = OrderedDict()
+    rank_dict["mpi_rank"] = index
+    rank_dict["op_list"] = rank_op_list
+    master_dict["iter_op_list"].append(rank_dict)
     index = index + 1
 
 outfile = open('output.yaml','w')

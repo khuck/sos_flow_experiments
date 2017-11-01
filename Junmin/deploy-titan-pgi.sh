@@ -13,7 +13,7 @@ if [ ! -d ${rootdir} ] ; then
 fi
 
 # Where is SOS installed?
-sosdir=/ccs/proj/csc143/tau_mona/titan.gnu/sos_flow
+sosdir=/ccs/proj/csc143/tau_mona/titan.pgi/sos_flow
 
 clean()
 {
@@ -34,7 +34,7 @@ setup()
 
 	# copy the run script
 	cp titan/ImpactT.in ${rootdir}
-	cp titan/small.r ${rootdir}
+	cp titan/small-pgi.r ${rootdir}
 
 	# copy the SOS daemons
 	cp ${sosdir}/bin/sosd ${rootdir}
@@ -45,7 +45,7 @@ setup()
 submit()
 {
 	cd ${rootdir}
-	qsub ./small.r
+	qsub ./small-pgi.r
 	cd ${origdir}
 }
 

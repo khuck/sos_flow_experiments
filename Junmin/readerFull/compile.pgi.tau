@@ -1,0 +1,16 @@
+#!/bin/bash -e
+
+if [ -z "${COMPILER}" ] ; then
+  COMPILER=mpicc
+fi
+COMPILER=${C_COMPILER}
+
+if [ "x${ADIOSDIR}" == "x" ] ; then
+  ADIOSDIR=/home/khuck/src/chaos/adios/ADIOS-gcc
+fi
+
+set -x 
+${COMPILER} -g -c reader2.c -I${ADIOSDIR}/include
+${COMPILER} -g -c diag2.c -I${ADIOSDIR}/include
+${COMPILER} -g -c his2d.c -I${ADIOSDIR}/include
+${COMPILER} -g -o reader2 reader2.o his2d.o diag2.o `tau_cc.sh -tau:showlibs` `${ADIOSDIR}/bin/adios_config -l`
