@@ -116,6 +116,13 @@ def get_start_stop(c,prog_name):
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     endtime = np.array([x[0] for x in all_rows]).astype(np.float)
+    if len(endtime) == 0:
+        sql_statement = "select max(time_pack) from viewCombined where comm_rank = 0 and prog_name like '" + prog_name + "';"
+        try_execute(c,sql_statement);
+        all_rows = c.fetchall()
+        endtime = np.array([x[0] for x in all_rows]).astype(np.float)
+        # microseconds
+        endtime[0] = endtime[0] * 1000000
     return endtime[0] - starttime[0]
 
 
