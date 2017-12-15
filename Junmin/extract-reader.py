@@ -215,7 +215,7 @@ def get_adios_write_guid(pg):
 # get the time range of interest.  It is three of the last four iterations, ignoring
 # the last one that could be bogus.
 def get_advance_step_range(application, limit, order):
-    sql_statement = "select time_pack from viewCombined where value_name like 'TAU_EVENT::adios_advance_step%' and comm_rank = 0 and prog_name like '%reader2' order by time_pack " + order + " limit " + str(limit) + ";"
+    sql_statement = "select time_pack from viewCombined where value_name like 'TAU_EVENT::adios_advance_step%' and comm_rank = 0 and prog_name like '" + application + "' order by time_pack " + order + " limit " + str(limit) + ";"
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     times = np.array([x[0] for x in all_rows])

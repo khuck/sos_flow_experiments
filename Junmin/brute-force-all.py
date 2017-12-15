@@ -316,15 +316,23 @@ def setup_yaml():
     represent_dict_order = lambda self, data:  self.represent_mapping('tag:yaml.org,2002:map', data.items())
     yaml.add_representer(OrderedDict, represent_dict_order)    
 
-def get_comm_yaml(op_list):
+def get_comm_yaml(op_list, application):
     global comm_dict
-    sql_statement = ("select distinct tbldata.name from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'TAU_EVENT::MPI_Comm%' or tbldata.name like 'TAU_EVENT::MPI_Cart%') and tblpubs.prog_name like '%xmain';")
+    sql_statement = ("select distinct tbldata.name from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'TAU_EVENT::MPI_Comm%' or tbldata.name like 'TAU_EVENT::MPI_Cart%') and tblpubs.prog_name like '" + application + "';")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     commands = np.array([x[0] for x in all_rows])
     for com in commands:
         #print(com)
+        sql_statement = ("select distinct comm_rank from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where tbldata.name = '" + com +"' and tblpubs.prog_name like '" + application + "' order by comm_rank;")
+        try_execute(c,sql_statement);
+        all_rows = c.fetchall()
+        ranks = np.array([x[0] for x in all_rows]).astype(np.int)
+        participating_ranks = []
+        for r in ranks:
+            participating_ranks.append(r)
+        #print(participating_ranks)
         tmp = com.split(' ',1)
         name = tmp[0]
         tmp2 = tmp[1].rsplit(' ',1)
@@ -355,6 +363,7 @@ def get_comm_yaml(op_list):
         #print(comm_value, comm_name)
         #my_dict["result_value"] = str(comm_value)
         my_dict["result"] = str(comm_name)
+        my_dict["ranks"] = str(participating_ranks)
         op_list.append(my_dict)
     #print comm_dict
 
@@ -462,7 +471,8 @@ pub_guids,ranks = get_ranks(c, application)
 master_dict=OrderedDict()
 master_dict["ranks"] = len(ranks)
 op_list = []
-get_comm_yaml(op_list)
+print("Getting communicator operations...")
+get_comm_yaml(op_list, application)
 master_dict["init_op_list"] = op_list
 master_dict["iter_op_list"] = []
 
@@ -473,7 +483,7 @@ next_windows = np.zeros(len(pub_guids))
 index = 0;
 # do this in parallel when in C!
 for pg, rank in zip(pub_guids,ranks):
-    print rank
+    print "Getting MPI,ADIOS operations for rank", rank
     rank_op_list = []
     # get guid for MPI collectives
     mpi_guid = get_mpi_collective_guid(pg)
