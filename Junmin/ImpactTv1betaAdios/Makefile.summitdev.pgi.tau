@@ -6,9 +6,9 @@
 #**************************************************************************
 # Macros defining the Fortran, C/C++ compiler and linker.
 
-COMPILER ?= ftn
+COMPILER ?= mpipgifort
 ADIOSDIR ?= /ccs/proj/csc143/tau_mona/${myarchcc}/ADIOS/ADIOS-pgi
-#LINK = ftn
+#LINK = mpipgifort
 FFLAGS = -O2 -g
 
 #CC = ${COMPILER} -DHAVE_CONFIG_H -I. -I/global/project/projectdirs/m1248/edison/adios-flexpath/adios-1.10.0 -I/project/projectdirs/m1248/SENSEI//ADIOS/src
