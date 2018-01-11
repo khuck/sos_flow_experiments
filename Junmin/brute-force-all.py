@@ -319,11 +319,66 @@ def setup_yaml():
 
 def get_comm_yaml(op_list, application):
     global comm_dict
-    sql_statement = ("select distinct tbldata.name from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'TAU_EVENT::MPI_Comm%' or tbldata.name like 'TAU_EVENT::MPI_Cart%') and tblpubs.prog_name like '%" + application + "%';")
+    sql_statement = ("select distinct comm_rank, tbldata.name from tbldata left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'TAU_EVENT::MPI_Comm%' or tbldata.name like 'TAU_EVENT::MPI_Cart%') and tblpubs.prog_name like '%" + application + "%' order by comm_rank;")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
-    commands = np.array([x[0] for x in all_rows])
+    commands = np.array([x[1] for x in all_rows])
+    fixed_coms = OrderedDict()
+    for row in all_rows:
+        rank = int(row[0])
+        com = str(row[1])
+        #print rank,com
+        # create a dictionary for this rank, if necessary
+        if rank not in comm_dict:
+            comm_dict[rank] = {}
+        tmp = com.split(' ',1)
+        name = tmp[0]
+        tmp2 = tmp[1].rsplit(' ',1)
+        args = tmp2[0]
+        result = tmp2[1]
+        tmp = args.strip('(').split(',',1)
+        comm_value = tmp[0].strip(')')
+        comm_name = "MPI_COMM_WORLD";
+        # do we have MPI_COMM_WORLD yet?
+        if len(comm_dict[rank]) > 0:
+            comm_name = "MPI_COMM_" + str(len(comm_dict[rank]))
+        if comm_value not in comm_dict[rank]:
+            comm_dict[rank][str(comm_value)] = comm_name
+        else:
+            comm_name = comm_dict[rank][comm_value]
+        #print(comm_value, comm_name)
+        com = com.replace(comm_value,comm_name)
+        # handle the result
+        comm_value = result
+        comm_name = "MPI_COMM_" + str(len(comm_dict[rank]))
+        if comm_value not in comm_dict[rank]:
+            comm_dict[rank][str(comm_value)] = comm_name
+        else:
+            comm_name = comm_dict[rank][comm_value]
+        #print(comm_value, comm_name)
+        #my_dict["result_value"] = str(comm_value)
+        com = com.replace(comm_value,comm_name)
+        if com not in fixed_coms:
+            fixed_coms[com] = []
+        fixed_coms[com].append(rank)
+    print fixed_coms
+    for com in fixed_coms:
+        tmp = com.split(' ',1)
+        name = tmp[0]
+        tmp2 = tmp[1].rsplit(' ',1)
+        args = tmp2[0]
+        result = tmp2[1]
+        my_dict = OrderedDict()
+        my_dict["type"] = str(name)
+        my_dict["args"] = str(args)
+        tmp = args.strip('(').split(',',1)
+        comm_name = tmp[0].strip(')')
+        my_dict["name"] = str(comm_name)
+        my_dict["result"] = str(result)
+        my_dict["ranks"] = fixed_coms[com]
+        op_list.append(my_dict)
+	"""
     for com in commands:
         #print(com)
         sql_statement = ("select distinct comm_rank from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where tbldata.name = '" + com +"' and tblpubs.prog_name like '%" + application + "%' order by comm_rank;")
@@ -367,6 +422,7 @@ def get_comm_yaml(op_list, application):
         my_dict["ranks"] = str(participating_ranks)
         op_list.append(my_dict)
     #print comm_dict
+	"""
 
 def get_adios_yaml(names,op_list):
     short = ''
@@ -408,7 +464,7 @@ def get_adios_yaml(names,op_list):
     my_dict["vars"] = my_vars
     op_list.append(my_dict)
 
-def get_mpi_yaml(starts,ends,names,op_list,maxv):
+def get_mpi_yaml(starts,ends,names,op_list,maxv,rank):
     global comm_dict
     # anything within 50% of the biggest cluster is a real compute region
     threshold = float(maxv) * 0.5
@@ -433,8 +489,8 @@ def get_mpi_yaml(starts,ends,names,op_list,maxv):
             #my_dict["num_bytes"] = str(tmp[1].strip('(').rstrip(')'))
             all_data = str(tmp[1].strip('(').rstrip(')'))
             comm_name = str(tmp[2].strip())
-            if str(tmp[2].strip()) in comm_dict:
-                comm_name = comm_dict[str(tmp[2].strip())]
+            if str(tmp[2].strip()) in comm_dict[rank]:
+                comm_name = comm_dict[rank][str(tmp[2].strip())]
             my_dict["comm"] = str(comm_name)
             counts = re.findall(r'\[([^]]*)\]', all_data)
             my_dict["sendcounts"] = counts[0]
@@ -449,8 +505,8 @@ def get_mpi_yaml(starts,ends,names,op_list,maxv):
             my_dict["type"] = str(tmp[0])
             my_dict["num_bytes"] = str(tmp[1].strip('(').rstrip(')'))
             comm_name = str(tmp[2].strip())
-            if str(tmp[2].strip()) in comm_dict:
-                comm_name = comm_dict[str(tmp[2].strip())]
+            if str(tmp[2].strip()) in comm_dict[rank]:
+                comm_name = comm_dict[rank][str(tmp[2].strip())]
             my_dict["comm"] = str(comm_name)
         elif 'collective exchange' in n:
             short = n.replace('TAU_EVENT::MPI collective exchange ','MPI_')
@@ -458,16 +514,16 @@ def get_mpi_yaml(starts,ends,names,op_list,maxv):
             my_dict["type"] = str(tmp[0])
             my_dict["num_bytes"] = int(tmp[1].strip('(').rstrip(')'))
             comm_name = str(tmp[2].strip())
-            if str(tmp[2].strip()) in comm_dict:
-                comm_name = comm_dict[str(tmp[2].strip())]
+            if str(tmp[2].strip()) in comm_dict[rank]:
+                comm_name = comm_dict[rank][str(tmp[2].strip())]
             my_dict["comm"] = str(comm_name)
         elif 'collective synchronize' in n:
             short = n.replace('TAU_EVENT::MPI collective synchronize ','MPI_')
             tmp = short.split(' ',1)
             my_dict["type"] = str(tmp[0])
             comm_name = "MPI_COMM_WORLD"
-            if str(tmp[1].strip()) in comm_dict:
-                comm_name = comm_dict[str(tmp[1].strip())]
+            if str(tmp[1].strip()) in comm_dict[rank]:
+                comm_name = comm_dict[rank][str(tmp[1].strip())]
             my_dict["comm"] = str(comm_name)
         op_list.append(my_dict)
 
@@ -522,7 +578,7 @@ for pg, rank in zip(pub_guids,ranks):
     #print numclust
     #print durations
     #print clusters,numclust,maxc,maxv
-    get_mpi_yaml(starts,ends,names,rank_op_list,maxv)
+    get_mpi_yaml(starts,ends,names,rank_op_list,maxv,rank)
     adios_guid = get_adios_write_guid(pg)
     adios_start,adios_end = get_time_range_adios(pg)
     adios_names = get_adios_writes(adios_guid,str(rows),adios_start,adios_end)
