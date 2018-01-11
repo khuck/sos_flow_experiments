@@ -9,6 +9,7 @@ import random
 #import matplotlib.pyplot as plt
 import yaml
 from collections import  OrderedDict
+import re
 
 conn = None
 comm_dict = {}
@@ -318,14 +319,14 @@ def setup_yaml():
 
 def get_comm_yaml(op_list, application):
     global comm_dict
-    sql_statement = ("select distinct tbldata.name from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'TAU_EVENT::MPI_Comm%' or tbldata.name like 'TAU_EVENT::MPI_Cart%') and tblpubs.prog_name like '" + application + "';")
+    sql_statement = ("select distinct tbldata.name from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where (tbldata.name like 'TAU_EVENT::MPI_Comm%' or tbldata.name like 'TAU_EVENT::MPI_Cart%') and tblpubs.prog_name like '%" + application + "%';")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     commands = np.array([x[0] for x in all_rows])
     for com in commands:
         #print(com)
-        sql_statement = ("select distinct comm_rank from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where tbldata.name = '" + com +"' and tblpubs.prog_name like '" + application + "' order by comm_rank;")
+        sql_statement = ("select distinct comm_rank from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where tbldata.name = '" + com +"' and tblpubs.prog_name like '%" + application + "%' order by comm_rank;")
         try_execute(c,sql_statement);
         all_rows = c.fetchall()
         ranks = np.array([x[0] for x in all_rows]).astype(np.int)
@@ -425,7 +426,24 @@ def get_mpi_yaml(starts,ends,names,op_list,maxv):
         previous_end = e
         short = ''
         my_dict = OrderedDict()
-        if 'collective exchangev' in n:
+        if 'collective exchangev Alltoallv' in n:
+            short = n.replace('TAU_EVENT::MPI collective exchangev ','MPI_')
+            tmp = short.split(' ',2)
+            my_dict["type"] = str(tmp[0])
+            #my_dict["num_bytes"] = str(tmp[1].strip('(').rstrip(')'))
+            all_data = str(tmp[1].strip('(').rstrip(')'))
+            comm_name = str(tmp[2].strip())
+            if str(tmp[2].strip()) in comm_dict:
+                comm_name = comm_dict[str(tmp[2].strip())]
+            my_dict["comm"] = str(comm_name)
+            counts = re.findall(r'\[([^]]*)\]', all_data)
+            my_dict["sendcounts"] = counts[0]
+            sendsize = re.findall(r'\],([^,]*),\[', all_data)
+            my_dict["sendtypesize"] = sendsize[0]
+            recvsize = re.findall(r'\],([0-9]*)$', all_data)
+            my_dict["recvcounts"] = counts[1]
+            my_dict["recvtypesize"] = recvsize[0]
+        elif 'collective exchangev' in n:
             short = n.replace('TAU_EVENT::MPI collective exchangev ','MPI_')
             tmp = short.split(' ',2)
             my_dict["type"] = str(tmp[0])
