@@ -362,7 +362,7 @@ def get_comm_yaml(op_list, application):
         if com not in fixed_coms:
             fixed_coms[com] = []
         fixed_coms[com].append(rank)
-    print fixed_coms
+    #print fixed_coms
     for com in fixed_coms:
         tmp = com.split(' ',1)
         name = tmp[0]
@@ -376,9 +376,9 @@ def get_comm_yaml(op_list, application):
         comm_name = tmp[0].strip(')')
         my_dict["name"] = str(comm_name)
         my_dict["result"] = str(result)
-        my_dict["ranks"] = fixed_coms[com]
+        my_dict["ranks"] = str(fixed_coms[com])
         op_list.append(my_dict)
-	"""
+    """
     for com in commands:
         #print(com)
         sql_statement = ("select distinct comm_rank from tblvals left outer join tbldata on tblvals.guid = tbldata.guid left outer join tblpubs on tbldata.pub_guid = tblpubs.guid where tbldata.name = '" + com +"' and tblpubs.prog_name like '%" + application + "%' order by comm_rank;")
@@ -422,7 +422,7 @@ def get_comm_yaml(op_list, application):
         my_dict["ranks"] = str(participating_ranks)
         op_list.append(my_dict)
     #print comm_dict
-	"""
+    """
 
 def get_adios_yaml(names,op_list):
     short = ''

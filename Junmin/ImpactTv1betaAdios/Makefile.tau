@@ -16,7 +16,8 @@ FFLAGS = -O2 -g -ffree-line-length-0
 CC = ${COMPILER} -DHAVE_CONFIG_H -I. -I${ADIOSDIR}/include
 LINK = ${COMPILER}
 #LINK = $(shell tau_cc.sh -tau:show)
-ADIOS = $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f)
+#ADIOS = $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f) -lbz2 -L/ccs/proj/csc143/kmehta/lz4-1.8.0/installation/lib -llz4
+ADIOS = $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f) $(shell ${ADIOSDIR}/bin/adios_config -l -f)
 
 #**************************************************************************
 # List of .o files that EXENAME depends on.  Edit as appropriate for MP.
