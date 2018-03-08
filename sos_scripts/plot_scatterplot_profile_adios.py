@@ -23,21 +23,21 @@ import socket
 import json
 from mpi4py import MPI
 import adios_mpi as ad
-#from common import TempFile
 
 # Global attr, representing the "previous" frame
-previous_attr = dict()
-cached_results_dim = None
 aggregators = []
 sosPort = 0
 SOS = None
 firstTime = True
-cachedName = ""
 config = None
-last_time = {}
-last_fp_ops = {}
-last_rss = {}
-adios_mode = "w"
+prog_names = {}
+comm_ranks = {}
+value_names = {}
+threads = {}
+metadata_keys = {}
+metrics = {}
+groups = {}
+timers = {}
 
 #
 # NOTE: This script is intended to be run standalone, and to serve as an
@@ -114,10 +114,12 @@ def parseConfigFile():
         config["output_adios"] = True
     if "adios_method" not in config:
         config["adios_method"] = "POSIX"
+    if "clean_database_after_frame" not in config:
+        config["clean_database_after_frame"] = False
 
 #####
 #
-def sosScatterplotGenerator():
+def sosToADIOS():
     global SOS
     global config
     parseConfigFile()
@@ -126,12 +128,6 @@ def sosScatterplotGenerator():
     printf("Initializing SOS: ...\b\b\b")
     SOS.init()
     printf("OK!\n")
-
-    # NOTE: When allocation time is scarce, 'stride' here can be
-    #       set so that intermediate cycles can be skipped, which is
-    #       especially useful when there are thousands of cycles.
-    #
-    stride = 1
 
     #####
     #
@@ -149,24 +145,10 @@ def sosScatterplotGenerator():
     #       and you're investigating a block-synchronous code, you can
     #       grab the current maximum and subtract one.
     #
-    cycleFieldName = "frame"
     #
     num_rows = 0
     # Get at least one active aggregator
     lookupAggregators()
-    # wait for a few frames to show up. Frame 0 and 1 are TAU metadata.
-    # Frame 2 represents a true iteration.
-    max_cycle, maxtime = waitForServer(SOS, cycleFieldName, max(stride,1), True)
-    print "Maximum observed '" + cycleFieldName + "' value: " + str(max_cycle) + " (so far)"
-    #
-    sqlMaxFrame = "SELECT count(*) FROM tblpubs;"
-    results, col_names = queryAllAggregators(sqlMaxFrame)
-    # We got results from each aggregator, so sum them up
-    rank_maxes = [int(x[0]) for x in results]
-    rank_max = sum(rank_maxes)
-    print "Maximum observed pub_guids: " + str(rank_max)
-    #
-    #####
 
     g = None
     if config["output_adios"]:
@@ -183,153 +165,133 @@ def sosScatterplotGenerator():
         print "using ADIOS method:", str(config["adios_method"])
         ad.select_method(g, str(config["adios_method"]), "verbose=3", "")
 
-    #
-    #
-    # EXAMPLE A: Generate .txt set for ALL simulation cycles:
-    print "Generating TXT files..."
-    lastX = [0.0]*(rank_max + 1)
-    lastY = [0.0]*(rank_max + 1)
-    lastZ = [0.0]*(rank_max + 1)
-    simCycle = max_cycle
-    mintime = 0.0
+    # wait for a frame to show up. Frame 0 (and maybe 1) are TAU metadata. 
+    # The rest should be just timers.
+    next_frame = 0
+    # first iteration, we are writing the file. after that, appending.
+    adios_mode = "w"
+
     # Keep running until there are no more frames to wait for.
-    # At runtime, this is a moving target, since max_cycle gets updated.
-    while config["aggregators"]["runtime"] or simCycle < config["aggregators"]["maxframe"]:
-        print "Processing frame", simCycle
-        start = time.time()
-        vtkOutputFileName = generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride, mintime, maxtime, g)
-        # clean up the database for long runs
-        #cleanDB(SOS, cycleFieldName, simCycle)
-        simCycle = simCycle + stride
+    # At runtime, this is a moving target, since next_frame gets updated.
+    while config["aggregators"]["runtime"] or next_frame < config["aggregators"]["maxframe"]:
         # wait for the next batch of frames
-        mintime = maxtime
-        max_cycle, maxtime = waitForServer(SOS, cycleFieldName, simCycle, False)
+        waitForServer(SOS, next_frame)
+        print "Processing frame", next_frame
+        start = time.time()
+        fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
+        writeMetaData(SOS, next_frame, g, fd)
+        writeTimerData(SOS, next_frame, g, fd)
+        ad.close(fd)
+        # future iterations are appending, not writing
+        adios_mode = "a"
+        # clean up the database for long runs
+        cleanDB(SOS, next_frame)
+        next_frame = next_frame + 1
         end = time.time()
         print "loop time:", str(end-start)
 
-    #####
-    #
-    # Whew!  All done!
-    #
-    # NOTE: See vtkWriter.py for more details.
-    #
+    # finalize adios
     if config["output_adios"]:
         ad.finalize()
+
+    # finalize SOS
     SOS.finalize();
-    #
-    #####
+
     print "   ...DONE!"
     print 
     return
-#
-#end:def sosScatterplotGenerator()
+#end:def sosToADIOS()
 
-def waitForServer(SOS, cycleFieldName, simCycle, first):
-    global cachedName
+def waitForServer(SOS, frame):
     global config
-    # IF running post-processing, skip this "first" - this just makes sure we have data
-    # from all publishers.
-    if first:
-        sum_expected = int(config["aggregators"]["expected_pubs"])
-        '''
-        sqlFieldNames = "select distinct(name) from tbldata where name like 'TAU..0..calls..%' limit 1;"
-        results, col_names = queryAllAggregators(sqlFieldNames)
-        cachedName = results[0][0]
-        '''
-        # cachedName = "TAU..0..calls..MPI"
-        cachedName = str(config["events"]["timers"][0])
-        # sqlFieldNames = "select count(distinct pub_guid) from viewCombined where value_name = '" + cachedName + "' and " + cycleFieldName + " = " + str(simCycle+1) + ";"
-        print "Waiting for publishers", str(simCycle)
-        sqlFieldNames = "select count(guid) from tblpubs;"
-        waiting = True
-        while waiting:
-            time.sleep(2.0)
-            # query all aggregators
-            results, col_names = queryAllAggregators(sqlFieldNames)
-            arrived = [int(x[0]) for x in results]
-            print arrived, "Publishers have arrived"
-            if sum(arrived) >= sum_expected:
-                # Wait just a bit more, just in case.
-                time.sleep(1.0)
-                break
 
-    # how many pubs are there?
-    """
-    sqlFieldNames = "select count(*) from tblpubs;"
-    results, col_names = queryAllAggregators(sqlFieldNames)
-    expected = [int(x[0]) for x in results]
-    #sum_expected = sum(expected)
-    """
+    # how many pubs are there at this frame?
     sum_expected = int(config["aggregators"]["expected_pubs"])
 
-    if first or not first:
-        # how many pubs have gotten to the expected frame?
-        # sqlFieldNames = "select count(pub_guid) from viewCombined where value_name = '" + cachedName + "' and " + cycleFieldName + " = " + str(simCycle) + ";"
-        print "Looking for frame", str(simCycle)
-        sqlFieldNames = "select count(distinct pub_guid) from viewCombined where " + cycleFieldName + " = " + str(simCycle) + ";"
-        maxframe = 0
-        waiting = True
-        while waiting:
-            # query all aggregators
-            results, col_names = queryAllAggregators(sqlFieldNames)
-            arrived = [int(x[0]) for x in results]
-            print arrived
-            #if sum(arrived) == sum(expected):
-            if sum(arrived) == sum_expected:
-                break
-            time.sleep(2.0)
+    # how many pubs have gotten to the expected frame?
+    print "Looking for frame", str(frame)
+    sqlFieldNames = "select count(distinct guid) from tblpubs where latest_frame > " + str(frame) + ";"
+    maxframe = 0
+    waiting = True
+    while waiting:
+        # query all aggregators
+        results, col_names = queryAllAggregators(sqlFieldNames)
+        arrived = [int(x[0]) for x in results]
+        print arrived, "pubs have arrived at frame", frame
+        if sum(arrived) >= sum_expected:
+            break
+        time.sleep(1.0)
 
     # Everyone has arrived.
+    return
 
-    '''
-    # What time did the last one finish that frame? Use time_recv, for a little buffer,
-    # since we aren't querying *all* variables, just one that we expect.
-    sqlFieldNames = "select max(foo) from (select pub_guid, coalesce(max(time_pack),0) as foo from viewCombined where value_name = '" + cachedName + "' and " + cycleFieldName + " = " + str(simCycle) + " group by pub_guid);"
-    results, col_names = queryAllAggregators(sqlFieldNames)
-    timestamp = [float(x[0]) for x in results]
-    maxtime = max(timestamp)
-    print "frame",simCycle,"ended at",maxtime
-    '''
-    maxtime = 0
-
-    return simCycle, maxtime
-
-def cleanDB(SOS, cycleFieldName, simCycle):
-    start = time.time()
-    sqlstr = "delete from tblvals where " + cycleFieldName + " < " + str(simCycle) + ";"
-    results, col_names = queryAllAggregators(sqlstr)
-    end = time.time()
-    print (end-start), "seconds for cleanup query"
-
-#####
-#
-def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride, mintime, maxtime, adios_group):
-    global previous_attr
-    global cached_results_dim
-    global cachedName
+def cleanDB(SOS, frame):
     global config
-    global last_time
-    global last_fp_ops
-    global last_rss
-    global adios_mode
+    if config["clean_database_after_frame"]:
+        start = time.time()
+        sqlstr = "delete from tblvals where frame < " + str(frame) + ";"
+        results, col_names = queryAllAggregators(sqlstr)
+        end = time.time()
+        print (end-start), "seconds for cleanup query"
 
-    # Get the frame-specific data...
+def writeMetaData(SOS, frame, adios_group, fd):
+    global config
+    global prog_names
+    global comm_ranks
+    global value_names
+    global threads
+    global metadata_keys
 
-    # because we are querying different servers, the data has the potential to
-    # arrive out-of-order (prog_name, comm_rank). So after each query, sort
-    # the results into a dictionary of dictionaries.
-    prog_names = {}
-    comm_ranks = {}
-    value_names = {}
-    threads = {}
-    metrics = {}
-    groups = {}
-    timers = {}
-
-    # do the memory first - HWM
+    # Get the frame-specific metadata...
+    # (there might not be any after frame 0)
 
     start = time.time()
-    sqlValsToColByRank = "select value_name, coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name like 'TAU_TIMER:%' and frame = " + str(simCycle) + " order by prog_name, comm_rank, value_name;"
+    sqlValsToColByRank = "select prog_name, comm_rank, value_name, value from viewCombined where value_name like 'TAU_METADATA:%' and frame = " + str(frame) + " order by prog_name, comm_rank, value_name;"
+    results, col_names = queryAllAggregators(sqlValsToColByRank)
+    end = time.time()
+    print (end-start), "seconds for frame query"
+
+    for r in results:
+        prog_name = str(r[0])
+        comm_rank = str(r[1])
+        value_name = str(r[2])
+        value = str(r[3])
+        if prog_name not in prog_names:
+            attr_name = "program_name " + str(len(prog_names))
+            prog_names[prog_name] = len(prog_names)
+            if config["output_adios"]:
+                ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, prog_name, "")
+        # may not be necessary...
+        if comm_rank not in comm_ranks:
+            comm_ranks[comm_rank] = len(comm_ranks)
+        # tease apart the metadata name.
+        tokens = value_name.split(":", 2)
+        thread = tokens[1]
+        metadata_key = tokens[2]
+        if thread not in threads:
+            threads[thread] = len(threads)
+        attr_name = "MetaData:" + str(prog_names[prog_name]) + ":" + comm_rank + ":" + thread + ":" + metadata_key
+        if config["output_adios"]:
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
+
+    return
+#
+#end:def writeTimerData(...)
+
+def writeTimerData(SOS, frame, adios_group, fd):
+    global config
+    global prog_names
+    global comm_ranks
+    global value_names
+    global threads
+    global metrics
+    global groups
+    global timers
+
+    # Get the frame-specific timer data...
+
+    start = time.time()
+    sqlValsToColByRank = "select value_name, coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name like 'TAU_TIMER:%' and frame = " + str(frame) + " order by prog_name, comm_rank, value_name;"
     results, col_names = queryAllAggregators(sqlValsToColByRank)
     end = time.time()
     print (end-start), "seconds for frame query"
@@ -345,7 +307,7 @@ def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride
         if prog_name not in prog_names:
             attr_name = "program_name " + str(len(prog_names))
             prog_names[prog_name] = len(prog_names)
-            ad.define_attribute_byvalue(adios_group, attr_name, "", prog_name)
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, prog_name, "")
         # may not be necessary...
         if comm_rank not in comm_ranks:
             comm_ranks[comm_rank] = len(comm_ranks)
@@ -360,11 +322,11 @@ def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride
         if metric not in metrics:
             attr_name = "metric " + str(len(metrics))
             metrics[metric] = len(metrics)
-            ad.define_attribute_byvalue(adios_group, attr_name, "", metric)
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, metric, "")
         if timer not in timers:
             attr_name = "timer " + str(len(timers))
             timers[timer] = len(timers)
-            ad.define_attribute_byvalue(adios_group, attr_name, "", timer)
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, timer, "")
         values_array[index][0] = int(prog_names[prog_name])
         values_array[index][1] = int(comm_ranks[comm_rank])
         values_array[index][2] = int(threads[thread])
@@ -373,18 +335,11 @@ def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride
         values_array[index][5] = int(value)
         index = index + 1
 
-    prog_names_array = np.array(list(prog_names.keys()), dtype=np.chararray)
-    comm_rank_array = np.array(list(comm_ranks.keys()), dtype=np.uint32)
-    thread_array = np.array(list(threads.keys()), dtype=np.uint32)
-    metric_array = np.array(list(metrics.keys()), dtype=np.chararray)
-    timer_array = np.array(list(timers.keys()), dtype=np.chararray)
-
-    # now that the data is queried and sorted, write it out to the file
+    # now that the data is queried and in arrays, write it out to the file
 
     # initialize the ADIOS data
     if config["output_adios"]:
         # write the adios
-        fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
         ad.write_int(fd, "program_count", len(prog_names))
         ad.write_int(fd, "comm_rank_count", len(comm_ranks))
         ad.write_int(fd, "thread_count", len(threads))
@@ -392,17 +347,9 @@ def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride
         ad.write_int(fd, "timer_count", len(timers))
         ad.write_int(fd, "value_count", len(results))
         ad.write(fd, "values", values_array)
-        ad.close(fd)
-        #fd.close()
-        # future iterations are appending, not writing
-        adios_mode = "a"
-    """
-
-    return filename
-    """
-    return ""
+    return
 #
-#end:def generateADIOSFile(...)
+#end:def writeTimerData(...)
 
 def printf(format, *args):
     sys.stdout.write(format % args)
@@ -411,7 +358,7 @@ def printf(format, *args):
 ###############################################################################
 
 if __name__ == "__main__":
-    sosScatterplotGenerator()
+    sosToADIOS()
     #end:FILE
 
 
