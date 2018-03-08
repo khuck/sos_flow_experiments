@@ -96,7 +96,6 @@ def queryAllAggregators(sql):
             allResults = results
         else:
             allResults += results
-        print results
     return allResults, col_names
 
 def parseConfigFile():
@@ -169,20 +168,18 @@ def sosScatterplotGenerator():
     #
     #####
 
+    g = None
     if config["output_adios"]:
         # ADIOS file output
         ad.init_noxml()
         g = ad.declare_group("TAU_metrics", "", ad.FLAG.YES)
-        ad.define_var(g, "process_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
         ad.define_var(g, "program_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
-        ad.define_var(g, "process_index", "", ad.DATATYPE.unsigned_integer, "process_count", "process_count", "0")
-        ad.define_var(g, "memory_HWM", "", ad.DATATYPE.double, "process_count", "process_count", "0")
-        ad.define_var(g, "memory_RSS", "", ad.DATATYPE.double, "process_count", "process_count", "0")
-        ad.define_var(g, "total_FLOPS", "", ad.DATATYPE.double, "process_count", "process_count", "0")
-        ad.define_var(g, "latest_FLOPS", "", ad.DATATYPE.double, "process_count", "process_count", "0")
-        #ad.define_var(g, "program_name", "", ad.DATATYPE.string, "program_count", "program_count", "0")
-        ad.define_var(g, "program_index", "", ad.DATATYPE.unsigned_integer, "process_count", "process_count", "0")
-        ad.define_var(g, "MPI_rank", "", ad.DATATYPE.unsigned_integer, "process_count", "process_count", "0")
+        ad.define_var(g, "comm_rank_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "thread_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "metric_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "timer_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "value_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "values", "", ad.DATATYPE.unsigned_integer, "value_count,6", "value_count,6", "0,0")
         print "using ADIOS method:", str(config["adios_method"])
         ad.select_method(g, str(config["adios_method"]), "verbose=3", "")
 
@@ -200,9 +197,9 @@ def sosScatterplotGenerator():
     while config["aggregators"]["runtime"] or simCycle < config["aggregators"]["maxframe"]:
         print "Processing frame", simCycle
         start = time.time()
-        vtkOutputFileName = generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride, mintime, maxtime)
+        vtkOutputFileName = generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride, mintime, maxtime, g)
         # clean up the database for long runs
-        cleanDB(SOS, cycleFieldName, simCycle)
+        #cleanDB(SOS, cycleFieldName, simCycle)
         simCycle = simCycle + stride
         # wait for the next batch of frames
         mintime = maxtime
@@ -235,11 +232,11 @@ def waitForServer(SOS, cycleFieldName, simCycle, first):
     if first:
         sum_expected = int(config["aggregators"]["expected_pubs"])
         '''
-        sqlFieldNames = "select distinct(name) from tbldata where name like 'TAU::0::calls::%' limit 1;"
+        sqlFieldNames = "select distinct(name) from tbldata where name like 'TAU..0..calls..%' limit 1;"
         results, col_names = queryAllAggregators(sqlFieldNames)
         cachedName = results[0][0]
         '''
-        # cachedName = "TAU::0::calls::MPI"
+        # cachedName = "TAU..0..calls..MPI"
         cachedName = str(config["events"]["timers"][0])
         # sqlFieldNames = "select count(distinct pub_guid) from viewCombined where value_name = '" + cachedName + "' and " + cycleFieldName + " = " + str(simCycle+1) + ";"
         print "Waiting for publishers", str(simCycle)
@@ -306,7 +303,7 @@ def cleanDB(SOS, cycleFieldName, simCycle):
 
 #####
 #
-def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride, mintime, maxtime):
+def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride, mintime, maxtime, adios_group):
     global previous_attr
     global cached_results_dim
     global cachedName
@@ -322,191 +319,88 @@ def generateADIOSFile(SOS, cycleFieldName, simCycle, lastX, lastY, lastZ, stride
     # arrive out-of-order (prog_name, comm_rank). So after each query, sort
     # the results into a dictionary of dictionaries.
     prog_names = {}
+    comm_ranks = {}
+    value_names = {}
+    threads = {}
+    metrics = {}
+    groups = {}
+    timers = {}
 
     # do the memory first - HWM
 
     start = time.time()
-    sqlValsToColByRank = "select coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name = '" + str(config["events"]["counters"][0]) + "' and frame = " + str(simCycle) + ";"
+    sqlValsToColByRank = "select value_name, coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name like 'TAU_TIMER:%' and frame = " + str(simCycle) + " order by prog_name, comm_rank, value_name;"
     results, col_names = queryAllAggregators(sqlValsToColByRank)
     end = time.time()
     print (end-start), "seconds for frame query"
 
+    values_array = np.zeros(shape=(len(results),6), dtype=np.uint32)
+
+    index = 0
     for r in results:
-        value = float(r[0])
-        prog_name = str(r[1])
-        comm_rank = int(r[2])
+        value_name = str(r[0])
+        value = float(r[1])
+        prog_name = str(r[2])
+        comm_rank = int(r[3])
         if prog_name not in prog_names:
-            prog_names[prog_name] = {}
-        if comm_rank not in prog_names[prog_name]:
-            prog_names[prog_name][comm_rank] = []
-        prog_names[prog_name][comm_rank].append(value)
-
-    # do the memory first - RSS
-
-    start = time.time()
-    current_rss = {}
-    sqlValsToColByRank = "select coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name = '" + str(config["events"]["counters"][1]) + "' and frame = " + str(simCycle) + ";"
-    results, col_names = queryAllAggregators(sqlValsToColByRank)
-    end = time.time()
-    print (end-start), "seconds for frame query"
-    index = -1
-
-    for r in results:
+            attr_name = "program_name " + str(len(prog_names))
+            prog_names[prog_name] = len(prog_names)
+            ad.define_attribute_byvalue(adios_group, attr_name, "", prog_name)
+        # may not be necessary...
+        if comm_rank not in comm_ranks:
+            comm_ranks[comm_rank] = len(comm_ranks)
+        # tease apart the timer name.
+        tokens = value_name.split(":", 4)
+        thread = tokens[1]
+        metric = tokens[2]
+        group = tokens[3]
+        timer = tokens[4]
+        if thread not in threads:
+            threads[thread] = len(threads)
+        if metric not in metrics:
+            attr_name = "metric " + str(len(metrics))
+            metrics[metric] = len(metrics)
+            ad.define_attribute_byvalue(adios_group, attr_name, "", metric)
+        if timer not in timers:
+            attr_name = "timer " + str(len(timers))
+            timers[timer] = len(timers)
+            ad.define_attribute_byvalue(adios_group, attr_name, "", timer)
+        values_array[index][0] = int(prog_names[prog_name])
+        values_array[index][1] = int(comm_ranks[comm_rank])
+        values_array[index][2] = int(threads[thread])
+        values_array[index][3] = int(metrics[metric])
+        values_array[index][4] = timers[timer]
+        values_array[index][5] = int(value)
         index = index + 1
-        value = float(r[0])
-        # change the mean value to a total value and save it
-        current_rss[index] = value * simCycle
-        # convert the running average to the most recent measurement
-        if index in last_rss:
-            value = current_rss[index] - last_rss[index]
-        prog_name = str(r[1])
-        comm_rank = int(r[2])
-        if prog_name not in prog_names:
-            prog_names[prog_name] = {}
-        if comm_rank not in prog_names[prog_name]:
-            prog_names[prog_name][comm_rank] = []
-        prog_names[prog_name][comm_rank].append(value)
-    last_rss = current_rss
 
-    # do the timer PAPI metric next
-
-    start = time.time()
-    # Make sure we sort by prog_name, comm_rank!
-    sqlValsToColByRank = "select coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name = '" + str(config["events"]["timers"][0]) + "' and frame = " + str(simCycle) + ";"
-    results, col_names = queryAllAggregators(sqlValsToColByRank)
-    end = time.time()
-    print (end-start), "seconds for frame query"
-
-    for r in results:
-        value = float(r[0])
-        prog_name = str(r[1])
-        comm_rank = int(r[2])
-        if prog_name not in prog_names:
-            prog_names[prog_name] = {}
-        if comm_rank not in prog_names[prog_name]:
-            prog_names[prog_name][comm_rank] = []
-        prog_names[prog_name][comm_rank].append(value)
-
-    # do the timer time metric next
-
-    start = time.time()
-    sqlValsToColByRank = "select coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name = '" + str(config["events"]["timers"][1]) + "' and frame = " + str(simCycle) + ";"
-    results, col_names = queryAllAggregators(sqlValsToColByRank)
-    end = time.time()
-    print (end-start), "seconds for frame query"
-
-    for r in results:
-        value = float(r[0])
-        prog_name = str(r[1])
-        comm_rank = int(r[2])
-        if prog_name not in prog_names:
-            prog_names[prog_name] = {}
-        if comm_rank not in prog_names[prog_name]:
-            prog_names[prog_name][comm_rank] = []
-        prog_names[prog_name][comm_rank].append(value)
+    prog_names_array = np.array(list(prog_names.keys()), dtype=np.chararray)
+    comm_rank_array = np.array(list(comm_ranks.keys()), dtype=np.uint32)
+    thread_array = np.array(list(threads.keys()), dtype=np.uint32)
+    metric_array = np.array(list(metrics.keys()), dtype=np.chararray)
+    timer_array = np.array(list(timers.keys()), dtype=np.chararray)
 
     # now that the data is queried and sorted, write it out to the file
 
     # initialize the ADIOS data
-    groupsize = 0
-    # How many MPI ranks in each program?
-    for prog_name in prog_names:
-        groupsize = groupsize + len(prog_names[prog_name])
-    program_count = len(prog_names)
-    adios_process_index = np.array(range(groupsize), dtype=np.uint32)
-    adios_memdata_hwm = np.array(range(groupsize), dtype=np.float64)
-    adios_memdata_rss = np.array(range(groupsize), dtype=np.float64)
-    adios_flops1 = np.array(range(groupsize), dtype=np.float64)
-    adios_flops2 = np.array(range(groupsize), dtype=np.float64)
-    adios_program = np.array(range(groupsize), dtype=np.uint32)
-    adios_program_name = np.array(range(program_count), dtype=np.chararray)
-    adios_mpi_index = np.array(range(groupsize), dtype=np.uint32)
-
-    cyclestr = str(simCycle)
-    cyclestr = cyclestr.rjust(5,'0')
-    filename="performance.metrics." + cyclestr + ".txt"
-    # regular text file
-    if config["output_text"]:
-        flops_out = open(config["outputdir"] + "/" + filename,'w')
-        flops_out.write("Process Index, Memory HWM, Memory RSS, Total FLOPS, Latest FLOPS, Program Name, Program Index, MPI Rank\n")
-    s1 = config["events"]["timer_scaling"][0]
-    s2 = config["events"]["timer_scaling"][1]
-    index = -1
-    prog_index = -1
-    current_time = {}
-    current_fp_ops = {}
-    for prog_name in prog_names:
-        prog_index = prog_index + 1
-        adios_program_name[prog_index] = prog_name
-        for comm_rank in prog_names[prog_name]:
-            index = index + 1
-            print prog_name, comm_rank, index, current_fp_ops, prog_names
-            current_fp_ops[index] = prog_names[prog_name][comm_rank][2] * s1
-            current_time[index] = prog_names[prog_name][comm_rank][3] * s2
-            flops_to_date = current_fp_ops[index] / current_time[index]
-            if len(last_fp_ops) > 0:
-                tmp = (current_fp_ops[index] - last_fp_ops[index]) 
-                tmp2 = (current_time[index] - last_time[index])
-                if tmp2 > 0.0:
-                    # compute flops from lastest timestep
-                    flops_in_last_timestep = tmp / tmp2
-                else:
-                    if last_time[index] > 0.0:
-                        # compute flops from previous timestep
-                        flops_in_last_timestep = last_fp_ops[index] / last_time[index]
-                    else:
-                        # something weird is happening...
-                        flops_in_last_timestep = 0.0
-            else:
-                # compute flops from first timestep
-                flops_in_last_timestep = flops_to_date
-            if config["output_text"]:
-                # write the sorted data to the file
-                flops_out.write(str(index) + ", ")
-                flops_out.write(str(prog_names[prog_name][comm_rank][0]) + ", ")
-                flops_out.write(str(prog_names[prog_name][comm_rank][1]) + ", ")
-                flops_out.write(str(flops_to_date) + ", ")
-                flops_out.write(str(flops_in_last_timestep) + ", ")
-                flops_out.write(prog_name + ", ")
-                flops_out.write(str(prog_index) + ", ")
-                flops_out.write(str(comm_rank) + "\n")
-            if config["output_adios"]:
-                adios_process_index[index] = index
-                adios_memdata_hwm[index] = prog_names[prog_name][comm_rank][0]
-                adios_memdata_rss[index] = prog_names[prog_name][comm_rank][1]
-                adios_flops1[index] = flops_to_date
-                adios_flops2[index] = flops_in_last_timestep
-                adios_program[index] = prog_index
-                adios_mpi_index[index] = comm_rank
-
-    if config["output_text"]:
-        flops_out.close()
-        stream_file="performance.metrics.txt"
-        stream_out = open(config["outputdir"] + "/" + stream_file,'w')
-        stream_out.write(filename + "\n")
-        stream_out.close()
-    last_time = current_time
-    last_fp_ops = current_fp_ops
-
     if config["output_adios"]:
         # write the adios
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
-        ad.write_int(fd, "process_count", groupsize)
-        ad.write_int(fd, "program_count", program_count)
-        ad.write(fd, "process_index", adios_process_index)
-        ad.write(fd, "memory_HWM", adios_memdata_hwm)
-        ad.write(fd, "memory_RSS", adios_memdata_rss)
-        ad.write(fd, "total_FLOPS", adios_flops1)
-        ad.write(fd, "latest_FLOPS", adios_flops2)
-        #ad.write(fd, "program_name", adios_program_name)
-        ad.write(fd, "program_index", adios_program)
-        ad.write(fd, "MPI_rank", adios_mpi_index)
+        ad.write_int(fd, "program_count", len(prog_names))
+        ad.write_int(fd, "comm_rank_count", len(comm_ranks))
+        ad.write_int(fd, "thread_count", len(threads))
+        ad.write_int(fd, "metric_count", len(metrics))
+        ad.write_int(fd, "timer_count", len(timers))
+        ad.write_int(fd, "value_count", len(results))
+        ad.write(fd, "values", values_array)
         ad.close(fd)
         #fd.close()
         # future iterations are appending, not writing
         adios_mode = "a"
+    """
 
     return filename
+    """
+    return ""
 #
 #end:def generateADIOSFile(...)
 
