@@ -223,22 +223,33 @@ def get_adios_write_guid(pg):
 
 # get the time range of interest.  It is three of the last four iterations, ignoring
 # the last one that could be bogus.
-def get_time_range(pg):
-    limit = 2
-    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_close%' and tbldata.pub_guid = " + str(pg) + " order by time_pack desc limit " + str(limit) + ";")
+def get_time_range(application, num_pubs):
+    limit = num_pubs * 2
+    # sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_close%' and tbldata.pub_guid = " + str(pg) + " order by time_pack desc limit " + str(limit) + ";")
+    sql_statement = ("select distinct value_name, value, time_pack, comm_rank, pub_guid from viewcombined where prog_name like '%" + application + "%' and value_name like 'TAU_EVENT::adios_close%' order by time_pack desc limit " + str(limit) + ";")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     closes = np.array([x[2] for x in all_rows])
-    #print("closes:",closes)
-    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_open%' and tbldata.pub_guid = " + str(pg) + " order by time_pack desc limit " + str(limit) + ";")
+    ranks = np.array([x[4] for x in all_rows])
+    first_rank = -1
+    close_timestamp = 0
+    for t,r in zip(closes.astype(float),ranks.astype(long)):
+        if first_rank == -1:
+            first_rank = r
+        else:
+            if first_rank == r:
+                close_timestamp = t
+                break
+    limit = 2
+    sql_statement = ("select distinct tbldata.name, tblvals.val, tblvals.time_pack from tblvals left outer join tbldata on tblvals.guid = tbldata.guid where tbldata.name like 'TAU_EVENT::adios_open%' and tbldata.pub_guid = " + str(first_rank) + " order by time_pack desc limit " + str(limit) + ";")
     #print(sql_statement)
     try_execute(c,sql_statement);
     all_rows = c.fetchall()
     opens = np.array([x[2] for x in all_rows])
     #print("opens:",opens)
     #print("range:",str(closes[limit-1]),str(opens[0]))
-    return(closes[limit-1],opens[0])
+    return(close_timestamp,opens[0])
 
 # get the time range of interest for ADIOS calls.  It is the first iteration.
 def get_time_range_adios(pg):
@@ -562,7 +573,8 @@ for pg, rank in zip(pub_guids,ranks):
     # get guid for MPI collectives
     mpi_guid = get_mpi_collective_guid(pg)
     # get the time range
-    time_start,time_end = get_time_range(pg)
+    time_start,time_end = get_time_range(application, len(pub_guids))
+    print time_start, time_end
     # Get the start, stop times for last n MPI Collectives
     starts,ends,names = get_mpi_exchanges(mpi_guid,str(rows),time_start,time_end)
     # How long are the compute windows?
