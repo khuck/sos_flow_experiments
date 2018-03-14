@@ -88,7 +88,7 @@ def queryAllAggregators(sql):
     # Iterate over the aggregators, running the query against each one.
     # This could be done in parallel...
     for a in aggregators:
-        #print a,sosPort,sql
+        print a,sosPort,sql
         #sys.stdout.flush()
         results, col_names = SOS.query(sql, a, sosPort)
         #print "\n...done."

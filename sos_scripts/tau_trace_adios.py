@@ -161,7 +161,9 @@ def sosToADIOS():
         ad.define_var(g, "event_type_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
         ad.define_var(g, "timer_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
         ad.define_var(g, "event_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
-        ad.define_var(g, "timestamps", "", ad.DATATYPE.unsigned_long, "event_count,6", "event_count,6", "0,0")
+        ad.define_var(g, "event_timestamps", "", ad.DATATYPE.unsigned_long, "event_count,6", "event_count,6", "0,0")
+        ad.define_var(g, "comm_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "comm_timestamps", "", ad.DATATYPE.unsigned_long, "event_count,8", "event_count,8", "0,0")
         print "using ADIOS method:", str(config["adios_method"])
         ad.select_method(g, str(config["adios_method"]), "verbose=3", "")
 
@@ -181,6 +183,7 @@ def sosToADIOS():
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
         writeMetaData(SOS, next_frame, g, fd)
         writeTimerData(SOS, next_frame, g, fd)
+        writeCommData(SOS, next_frame, g, fd)
         ad.close(fd)
         # future iterations are appending, not writing
         adios_mode = "a"
@@ -275,7 +278,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
 
     return
 #
-#end:def writeTimerData(...)
+#end:def writeMetaData(...)
 
 def writeTimerData(SOS, frame, adios_group, fd):
     global config
@@ -290,7 +293,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
     # Get the frame-specific timer data...
 
     start = time.time()
-    sqlValsToColByRank = "select prog_name, comm_rank, value, value_name from viewCombined where value_name like 'TAU_EVENT_%' and frame = " + str(frame) + " order by prog_name, comm_rank, value;"
+    sqlValsToColByRank = "select prog_name, comm_rank, value, value_name from viewCombined where (value_name like 'TAU_EVENT_ENTRY%' or value_name like 'TAU_EVENT_EXIT%') and frame = " + str(frame) + " order by value;"
     results, col_names = queryAllAggregators(sqlValsToColByRank)
     end = time.time()
     print (end-start), "seconds for frame query"
@@ -300,7 +303,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
     index = 0
     for r in results:
         prog_name  = str(r[0])
-        comm_rank  = int(r[1])
+        comm_rank  = str(r[1])
         value     = long(r[2])
         value_name = str(r[3])
         if prog_name not in prog_names:
@@ -338,13 +341,90 @@ def writeTimerData(SOS, frame, adios_group, fd):
     # initialize the ADIOS data
     if config["output_adios"]:
         # write the adios
+
+        # these get written when the comm data is written
+
+        # ad.write_int(fd, "program_count", len(prog_names))
+        # ad.write_int(fd, "comm_rank_count", len(comm_ranks))
+        # ad.write_int(fd, "thread_count", len(threads))
+        #ad.write_int(fd, "timer_count", len(timers))
+        #ad.write_int(fd, "event_type_count", len(event_types))
+
+        ad.write_int(fd, "event_count", len(results))
+        ad.write(fd, "event_timestamps", values_array)
+    return
+#
+#end:def writeTimerData(...)
+
+def writeCommData(SOS, frame, adios_group, fd):
+    global config
+    global prog_names
+    global comm_ranks
+    global value_names
+    global threads
+    global groups
+    global timers
+    global event_types
+
+    # Get the frame-specific timer data...
+
+    start = time.time()
+    sqlValsToColByRank = "select prog_name, comm_rank, value, value_name from viewCombined where (value_name like 'TAU_EVENT_SEND%' or value_name like 'TAU_EVENT_RECV%') and frame = " + str(frame) + " order by value;"
+    results, col_names = queryAllAggregators(sqlValsToColByRank)
+    end = time.time()
+    print (end-start), "seconds for frame query"
+
+    values_array = np.zeros(shape=(len(results),8), dtype=np.uint64)
+
+    index = 0
+    for r in results:
+        prog_name  = str(r[0])
+        comm_rank  = str(r[1])
+        value     = long(r[2])
+        value_name = str(r[3])
+        if prog_name not in prog_names:
+            attr_name = "program_name " + str(len(prog_names))
+            prog_names[prog_name] = len(prog_names)
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, prog_name, "")
+        # may not be necessary...
+        if comm_rank not in comm_ranks:
+            comm_ranks[comm_rank] = len(comm_ranks)
+        # tease apart the event name
+        tokens = value_name.split(":", 2)
+        event_type = tokens[0].replace("TAU_EVENT_","")
+        if event_type not in event_types:
+            attr_name = "event_type " + str(len(event_types))
+            event_types[event_type] = len(event_types)
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, event_type, "")
+        tokens = value_name.split(":", 4)
+        thread = tokens[1]
+        tag = tokens[2]
+        partner = tokens[3]
+        num_bytes = tokens[4]
+        if thread not in threads:
+            threads[thread] = len(threads)
+        values_array[index][0] = long(prog_names[prog_name])
+        values_array[index][1] = long(comm_ranks[comm_rank])
+        values_array[index][2] = long(threads[thread])
+        values_array[index][3] = long(event_types[event_type])
+        values_array[index][4] = long(tag)
+        values_array[index][5] = long(partner)
+        values_array[index][6] = long(num_bytes)
+        values_array[index][7] = long(value)
+        index = index + 1
+
+    # now that the data is queried and in arrays, write it out to the file
+
+    # initialize the ADIOS data
+    if config["output_adios"]:
+        # write the adios
         ad.write_int(fd, "program_count", len(prog_names))
         ad.write_int(fd, "comm_rank_count", len(comm_ranks))
         ad.write_int(fd, "thread_count", len(threads))
         ad.write_int(fd, "timer_count", len(timers))
         ad.write_int(fd, "event_type_count", len(event_types))
-        ad.write_int(fd, "event_count", len(results))
-        ad.write(fd, "timestamps", values_array)
+        ad.write_int(fd, "comm_count", len(results))
+        ad.write(fd, "comm_timestamps", values_array)
     return
 #
 #end:def writeTimerData(...)
