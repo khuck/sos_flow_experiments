@@ -7,7 +7,7 @@
 # Macros defining the Fortran, C/C++ compiler and linker.
 
 COMPILER ?= ftn
-ADIOSDIR ?= /ccs/proj/csc143/tau_mona/titan.pgi/ADIOS/ADIOS-pgi
+ADIOSDIR ?= /ccs/proj/csc143/tau_mona/${myarchcc}/ADIOS/ADIOS-pgi
 #LINK = ftn
 FFLAGS = -O2 -g
 

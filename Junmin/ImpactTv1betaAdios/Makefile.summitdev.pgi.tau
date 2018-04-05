@@ -6,18 +6,18 @@
 #**************************************************************************
 # Macros defining the Fortran, C/C++ compiler and linker.
 
-COMPILER ?= mpif90
-ADIOSDIR ?= /home/khuck/src/chaos/adios/ADIOS-gcc
-#LINK = ftn
-FFLAGS = -O2 -g -ffree-line-length-0
+COMPILER ?= mpipgifort
+ADIOSDIR ?= /ccs/proj/csc143/tau_mona/${myarchcc}/ADIOS/ADIOS-pgi
+#LINK = mpipgifort
+FFLAGS = -O2 -g
 
 #CC = ${COMPILER} -DHAVE_CONFIG_H -I. -I/global/project/projectdirs/m1248/edison/adios-flexpath/adios-1.10.0 -I/project/projectdirs/m1248/SENSEI//ADIOS/src
 #CC = ${COMPILER} -DHAVE_CONFIG_H -I. -I/global/project/projectdirs/m1248/edison/adios-flexpath/adios-1.10.0/src
 CC = ${COMPILER} -DHAVE_CONFIG_H -I. -I${ADIOSDIR}/include
 LINK = ${COMPILER}
 #LINK = $(shell tau_cc.sh -tau:show)
-#ADIOS = $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f) -lbz2 -L/ccs/proj/csc143/kmehta/lz4-1.8.0/installation/lib -llz4
-ADIOS = $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f) $(shell ${ADIOSDIR}/bin/adios_config -l -f)
+#ADIOS = $(shell tau_cc.sh -tau:showlibs) $(shell ${ADIOSDIR}/bin/adios_config -l -f)
+ADIOS = $(shell ${ADIOSDIR}/bin/adios_config -l -f) $(shell tau_cc.sh -tau:showlibs)
 
 #**************************************************************************
 # List of .o files that EXENAME depends on.  Edit as appropriate for MP.
