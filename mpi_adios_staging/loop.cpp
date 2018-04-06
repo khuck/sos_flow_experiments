@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "simple_timer.h"
 #include <algorithm>
 
 #define MATRIX_SIZE 1024
@@ -171,6 +172,7 @@ void do_alltoall(double ** matrix, int rows, int cols) {
 void main_loop(void) {
   int i;
   double total = 0;
+  simple_timer tm("Total Time");
   for (i = 0 ; i < max_iterations ; i++ ) {
     /* output status */
     if (_commrank == 0) {
@@ -179,6 +181,7 @@ void main_loop(void) {
     /* wait for everyone to start at the same time */
     MPI_Barrier(MPI_COMM_WORLD);
     {
+      simple_timer t("Iteration");
       /* do work */
       total += do_work(i);
     }

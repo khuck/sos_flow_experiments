@@ -11,7 +11,7 @@ HDRS=$(wildcard *.h)
 OBJS=$(subst .cpp,.o,$(SRCS))
 DEPS=$(subst .cpp,.d,$(SRCS))
 TARGET=main
-NRANKS=2
+NRANKS=36
 
 all: $(TARGET)
 
@@ -36,7 +36,7 @@ debug: $(TARGET)
 	mpirun -np $(NRANKS) xterm -e lldb $(shell pwd)/$(TARGET)
 
 tautest: $(TARGET)
-	mpirun -np $(NRANKS) tau_exec -T mpi,pthread,adios -ebs ./$(TARGET)
+	mpirun -np $(NRANKS) tau_exec -T mpi -ebs ./$(TARGET)
 
 clean:
 	$(RM) $(OBJS) $(TARGET) sosd.* profile.*
