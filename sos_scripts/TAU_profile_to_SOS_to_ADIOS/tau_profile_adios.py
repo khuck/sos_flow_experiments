@@ -116,6 +116,11 @@ def parseConfigFile():
         config["adios_method"] = "POSIX"
     if "clean_database_after_frame" not in config:
         config["clean_database_after_frame"] = False
+    if "server_timeout" not in config:
+        # Specified in seconds
+        config["server_timeout"] = 1
+    if "exit_after_n_timeouts"] not in config:
+        config["exit_after_n_timeouts"] = 100
 
 #####
 #
@@ -175,7 +180,9 @@ def sosToADIOS():
     # At runtime, this is a moving target, since next_frame gets updated.
     while config["aggregators"]["runtime"] or next_frame < config["aggregators"]["maxframe"]:
         # wait for the next batch of frames
-        waitForServer(SOS, next_frame)
+        timeout = waitForServer(SOS, next_frame)
+        if timeout:
+            break
         print "Processing frame", next_frame
         start = time.time()
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
@@ -211,18 +218,19 @@ def waitForServer(SOS, frame):
     print "Looking for frame", str(frame)
     sqlFieldNames = "select count(distinct guid) from tblpubs where latest_frame > " + str(frame) + ";"
     maxframe = 0
-    waiting = True
-    while waiting:
+    timeouts = 0
+    while frame == 0 or timeouts < config["exit_after_n_timeouts"]:
         # query all aggregators
         results, col_names = queryAllAggregators(sqlFieldNames)
         arrived = [int(x[0]) for x in results]
         print arrived, "pubs have arrived at frame", frame
         if sum(arrived) >= sum_expected:
-            break
-        time.sleep(1.0)
-
-    # Everyone has arrived.
-    return
+            # Everyone has arrived.
+            return False
+        time.sleep(config["server_timeout"])
+        timeouts = timeouts + 1
+    # Too many timeouts, exit.
+    return True
 
 def cleanDB(SOS, frame):
     global config
@@ -258,8 +266,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
         if prog_name not in prog_names:
             attr_name = "program_name " + str(len(prog_names))
             prog_names[prog_name] = len(prog_names)
-            if config["output_adios"]:
-                ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, prog_name, "")
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, prog_name, "")
         # may not be necessary...
         if comm_rank not in comm_ranks:
             comm_ranks[comm_rank] = len(comm_ranks)
@@ -270,8 +277,9 @@ def writeMetaData(SOS, frame, adios_group, fd):
         if thread not in threads:
             threads[thread] = len(threads)
         attr_name = "MetaData:" + str(prog_names[prog_name]) + ":" + comm_rank + ":" + thread + ":" + metadata_key
-        if config["output_adios"]:
-            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
+        if attr_name not in metadata_keys:
+            metadata_keys[attr_name] = len(metadata_keys)
+            #ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
 
     return
 #
