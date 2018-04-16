@@ -120,7 +120,7 @@ def parseConfigFile():
     if "server_timeout" not in config:
         # Specified in seconds
         config["server_timeout"] = 1
-    if "exit_after_n_timeouts"] not in config:
+    if "exit_after_n_timeouts" not in config:
         config["exit_after_n_timeouts"] = 100
 
 #####
