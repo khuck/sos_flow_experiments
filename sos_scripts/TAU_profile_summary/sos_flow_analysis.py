@@ -238,5 +238,5 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         sos_flow_analysis(sys.argv[1])
     elif len(sys.argv) == 1:
-        sos_flow_analysis(os.path.dirname(os.getcwd()))
+        sos_flow_analysis(os.getcwd())
 
