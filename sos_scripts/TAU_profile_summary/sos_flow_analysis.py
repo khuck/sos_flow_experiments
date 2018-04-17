@@ -235,5 +235,8 @@ def sos_flow_analysis(run_dir):
 
 if __name__ == '__main__':
     #sos_flow_analysis("/lustre/atlas/world-shared/csc143/kmehta/heat-transfer")
-    sos_flow_analysis(os.path.dirname(os.path.realpath(__file__)))
+    if len(sys.argv) == 2:
+        sos_flow_analysis(sys.argv[1])
+    else if len(sys.argv) == 1:
+        sos_flow_analysis(os.path.dirname(os.getcwd()))
 
