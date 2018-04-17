@@ -240,7 +240,7 @@ def sos_flow_analysis(run_dir):
         perf_results[rc_exe] = {"time": total_inclusive,
                                "adios_time": adios_exclusive,
                                "adios_data": adios_write_bytes}
-        print (perf_results)
+    print (perf_results)
     return(perf_results)
 
 if __name__ == '__main__':
