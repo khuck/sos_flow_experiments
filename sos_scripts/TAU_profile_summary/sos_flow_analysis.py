@@ -237,6 +237,6 @@ if __name__ == '__main__':
     #sos_flow_analysis("/lustre/atlas/world-shared/csc143/kmehta/heat-transfer")
     if len(sys.argv) == 2:
         sos_flow_analysis(sys.argv[1])
-    else if len(sys.argv) == 1:
+    elif len(sys.argv) == 1:
         sos_flow_analysis(os.path.dirname(os.getcwd()))
 
