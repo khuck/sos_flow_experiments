@@ -208,8 +208,9 @@ def sos_flow_analysis(run_dir):
             adios_write_bytes = get_group_counter(c,"ADIOS data size",n_str,h_str,"Total")
         else:
             total_inclusive = (get_group_metric(c,"inclusive","TIME","TAU_USER:.TAU application",n_str)/1000000)/r
-            mpi_exclusive = (get_group_metric(c,"exclusive","TIME","MPI:MPI_",n_str)/1000000)/r
+            mpi_exclusive = (get_group_metric(c,"inclusive","TIME","MPI:MPI_",n_str)/1000000)/r
             adios_exclusive = (get_group_metric(c,"exclusive","TIME","TAU_IO:adios_",n_str)/1000000)/r
+            adios_inclusive = (get_group_metric(c,"inclusive","TIME","TAU_IO:adios_",n_str)/1000000)/r
             user_exclusive = total_inclusive - (mpi_exclusive + adios_exclusive)
             mpi_collective_bytes = get_group_counter(c,"Message size for %",n_str,h_str,"Total")
             mpi_recv_bytes = get_group_counter(c,"Message size received from all nodes",n_str,h_str,"Total")
@@ -223,7 +224,8 @@ def sos_flow_analysis(run_dir):
             print("\t","Total time :",total_inclusive,"seconds")
             print("\t","User  time :",user_exclusive,"seconds")
             print("\t","MPI   time :",mpi_exclusive,"seconds (",(mpi_exclusive/total_inclusive)*100,"% )")
-            print("\t","ADIOS time :",adios_exclusive,"seconds (",(adios_exclusive/total_inclusive)*100,"% )")
+            print("\t","ADIOS time :",adios_exclusive,"seconds (",(adios_exclusive/total_inclusive)*100,"%, excludes MPI)")
+            print("\t","ADIOS time :",adios_inclusive,"seconds (",(adios_inclusive/total_inclusive)*100,"%, includes MPI)")
             print("\t","MPI collective bytes             :",mpi_collective_bytes)
             print("\t","MPI P2P bytes sent               :",mpi_send_bytes)
             print("\t","MPI P2P bytes received           :",mpi_recv_bytes)
