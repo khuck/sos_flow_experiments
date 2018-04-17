@@ -38,6 +38,7 @@ metadata_keys = {}
 metrics = {}
 groups = {}
 timers = {}
+counters = {}
 
 #
 # NOTE: This script is intended to be run standalone, and to serve as an
@@ -165,8 +166,11 @@ def sosToADIOS():
         ad.define_var(g, "thread_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
         ad.define_var(g, "metric_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
         ad.define_var(g, "timer_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
-        ad.define_var(g, "value_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
-        ad.define_var(g, "values", "", ad.DATATYPE.unsigned_integer, "value_count,6", "value_count,6", "0,0")
+        ad.define_var(g, "timer_value_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "timer_values", "", ad.DATATYPE.unsigned_integer, "timer_value_count,6", "timer_value_count,6", "0,0")
+        ad.define_var(g, "counter_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "counter_value_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
+        ad.define_var(g, "counter_values", "", ad.DATATYPE.double, "counter_value_count,5", "counter_value_count,5", "0,0")
         print "using ADIOS method:", str(config["adios_method"])
         ad.select_method(g, str(config["adios_method"]), "verbose=3", "")
 
@@ -188,6 +192,7 @@ def sosToADIOS():
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
         writeMetaData(SOS, next_frame, g, fd)
         writeTimerData(SOS, next_frame, g, fd)
+        writeCounterData(SOS, next_frame, g, fd)
         ad.close(fd)
         # future iterations are appending, not writing
         adios_mode = "a"
@@ -279,7 +284,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
         attr_name = "MetaData:" + str(prog_names[prog_name]) + ":" + comm_rank + ":" + thread + ":" + metadata_key
         if attr_name not in metadata_keys:
             metadata_keys[attr_name] = len(metadata_keys)
-            #ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
 
     return
 #
@@ -352,11 +357,75 @@ def writeTimerData(SOS, frame, adios_group, fd):
         ad.write_int(fd, "thread_count", len(threads))
         ad.write_int(fd, "metric_count", len(metrics))
         ad.write_int(fd, "timer_count", len(timers))
-        ad.write_int(fd, "value_count", len(results))
-        ad.write(fd, "values", values_array)
+        ad.write_int(fd, "timer_value_count", len(results))
+        ad.write(fd, "timer_values", values_array)
     return
 #
 #end:def writeTimerData(...)
+
+def writeCounterData(SOS, frame, adios_group, fd):
+    global config
+    global prog_names
+    global comm_ranks
+    global value_names
+    global threads
+    global counters
+
+    # Get the frame-specific counter data...
+
+    start = time.time()
+    sqlValsToColByRank = "select value_name, coalesce(value,0.0), prog_name, comm_rank from viewCombined where value_name like 'TAU_COUNTER:%' and frame = " + str(frame) + " order by prog_name, comm_rank, value_name;"
+    results, col_names = queryAllAggregators(sqlValsToColByRank)
+    end = time.time()
+    print (end-start), "seconds for counter query"
+
+    values_array = np.zeros(shape=(len(results),5), dtype=np.float)
+
+    index = 0
+    for r in results:
+        value_name = str(r[0])
+        value = float(r[1])
+        prog_name = str(r[2])
+        comm_rank = str(r[3])
+        if prog_name not in prog_names:
+            attr_name = "program_name " + str(len(prog_names))
+            prog_names[prog_name] = len(prog_names)
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, prog_name, "")
+        # may not be necessary...
+        if comm_rank not in comm_ranks:
+            comm_ranks[comm_rank] = len(comm_ranks)
+        # tease apart the counter name.
+        tokens = value_name.split(":", 2)
+        thread = tokens[1]
+        counter = tokens[2]
+        if thread not in threads:
+            threads[thread] = len(threads)
+        if counter not in counters:
+            attr_name = "counter " + str(len(counters))
+            counters[counter] = len(counters)
+            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, counter, "")
+        values_array[index][0] = int(prog_names[prog_name])
+        values_array[index][1] = int(comm_ranks[comm_rank])
+        values_array[index][2] = int(threads[thread])
+        values_array[index][3] = counters[counter]
+        values_array[index][4] = float(value)
+        index = index + 1
+
+    # now that the data is queried and in arrays, write it out to the file
+
+    # initialize the ADIOS data
+    if config["output_adios"]:
+        # write the adios
+        ad.write_int(fd, "program_count", len(prog_names))
+        ad.write_int(fd, "comm_rank_count", len(comm_ranks))
+        ad.write_int(fd, "thread_count", len(threads))
+        ad.write_int(fd, "metric_count", len(metrics))
+        ad.write_int(fd, "counter_count", len(counters))
+        ad.write_int(fd, "counter_value_count", len(results))
+        ad.write(fd, "counter_values", values_array)
+    return
+#
+#end:def writeCounterData(...)
 
 def printf(format, *args):
     sys.stdout.write(format % args)
