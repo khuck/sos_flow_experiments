@@ -241,7 +241,7 @@ def sos_flow_analysis(run_dir):
                                "adios_time": adios_exclusive,
                                "adios_data": adios_write_bytes}
         print (perf_results)
-        return(perf_results)
+    return(perf_results)
 
 if __name__ == '__main__':
     #sos_flow_analysis("/lustre/atlas/world-shared/csc143/kmehta/heat-transfer")
