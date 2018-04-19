@@ -1,40 +1,22 @@
 #include "globals.h"
 #include "simple_timer.h"
+#include "matrix.h"
 #include <algorithm>
 
-#define MATRIX_SIZE 1024
-const int max_iterations = 10;
-const double increment_divisor = 0.01; /* add/subtract 1% each time */
+#define MATRIX_SIZE 512
 int NRA = MATRIX_SIZE; /* number of rows in matrix A */
 int NCA = MATRIX_SIZE; /* number of columns in matrix A */
 int NCB = MATRIX_SIZE; /* number of columns in matrix B */
 
-double** allocateMatrix(int rows, int cols) {
-  int i;
-  double **matrix = (double**)malloc((sizeof(double*)) * rows);
-  for (i=0; i<rows; i++) {
-    matrix[i] = (double*)malloc((sizeof(double)) * cols);
-  }
-  return matrix;
-}
-
-void freeMatrix(double** matrix, int rows, int cols) {
-  int i;
-  for (i=0; i<rows; i++) {
-    free(matrix[i]);
-  }
-  free(matrix);
-}
-
-void initialize(double **matrix, int rows, int cols) {
+void initialize(Matrix<double> &matrix) {
   int i,j;
 #pragma omp parallel private(i,j) shared(matrix)
   {
     //set_num_threads();
     /*** Initialize matrices ***/
 #pragma omp for nowait
-    for (i=0; i<rows; i++) {
-      for (j=0; j<cols; j++) {
+    for (i=0; i<matrix.Rows(); i++) {
+      for (j=0; j<matrix.Columns(); j++) {
         matrix[i][j]= i+j;
       }
     }
@@ -42,14 +24,15 @@ void initialize(double **matrix, int rows, int cols) {
 }
 
 // cols_a and rows_b are the same value
-void compute(double **a, double **b, double **c, int rows_a, int cols_a, int cols_b) {
+void compute(Matrix<double> &a, Matrix<double> &b, Matrix<double> &c) {
+  simple_timer t("Compute");
   int i,j,k;
 #pragma omp parallel private(i,j,k) shared(a,b,c)
   {
 #pragma omp for nowait
-    for (i=0; i<rows_a; i++) {
-      for (k=0; k<cols_a; k++) {
-        for(j=0; j<cols_b; j++) {
+    for (i=0; i<a.Rows(); i++) {
+      for (k=0; k<a.Columns(); k++) {
+        for(j=0; j<b.Columns(); j++) {
           c[i][j] += a[i][k] * b[k][j];
         }
       }
@@ -57,42 +40,35 @@ void compute(double **a, double **b, double **c, int rows_a, int cols_a, int col
   }   /*** End of parallel region ***/
 }
 
-#define increment int((MATRIX_SIZE)*increment_divisor)
-
-double do_work(int i) {
-  double **a,    /* matrix A to be multiplied */
-  **b,           /* matrix B to be multiplied */
-  **c;           /* result matrix C */
-  NRA = MATRIX_SIZE;
-  NCA = MATRIX_SIZE;
-  NCB = MATRIX_SIZE;
+double do_work(int i, bool do_adios_write) {
   //std::cout << _commrank << ": MATRIX SIZE: " << NRA << std::endl; fflush(stdout);
 
-  a = allocateMatrix(NRA, NCA);
-  b = allocateMatrix(NCA, NCB);
-  c = allocateMatrix(NRA, NCB);  
+  Matrix<double> a(NRA, NCA);
+  Matrix<double> b(NCA, NCB);
+  Matrix<double> c(NRA, NCB);  
 
   /*** Spawn a parallel region explicitly scoping all variables ***/
 
-  initialize(a, NRA, NCA);
-  initialize(b, NCA, NCB);
-  initialize(c, NRA, NCB);
+  initialize(a);
+  initialize(b);
+  initialize(c);
 
   /* do a big broadcast */
-  do_broadcast(a, NRA, NCA);
-  do_broadcast(b, NRA, NCA);
+  do_broadcast(a);
+  do_broadcast(b);
 
-  compute(a, b, c, NRA, NCA, NCB);
+  compute(a, b, c);
 
   /* do a reduction */
-  double result = do_reduction(c, NRA, NCB);
+  double result = do_reduction(c);
 
   /* do an alltoall */
-  do_alltoall(c, NRA, NCA);
+  do_alltoall(c);
 
-  freeMatrix(a, NRA, NCA);
-  freeMatrix(b, NCA, NCB);
-  freeMatrix(c, NCA, NCB);
+  /* Do the ADIOS output */
+  if (do_adios_write) {
+    do_adios(c);
+  }
 
   return result;
 }
@@ -134,46 +110,58 @@ bool mpi_check(int rc) {
   }
 }
 
-void do_broadcast(double ** matrix, int rows, int cols) {
-  int count = cols;
+void do_broadcast(Matrix<double> &matrix) {
+  simple_timer t("Broadcast");
+  int count = matrix.Rows() * matrix.Columns();
   MPI_Datatype datatype = MPI_DOUBLE;
   int root = 0;
   MPI_Comm comm = MPI_COMM_WORLD;
-  void * buffer = NULL;
+  void * buffer = matrix.Data();
   int rc = 0;
-  for (int i = 0 ; i < rows ; i++) {
-    buffer = &(matrix[i][0]);
-    mpi_check(MPI_Bcast( buffer, count, datatype, root, comm ));
-  }
+  mpi_check(MPI_Bcast( buffer, count, datatype, root, comm ));
 }
 
-double do_reduction(double ** matrix, int rows, int cols) {
-  const void * sendbuf;
-  int count = cols;
+double do_reduction(Matrix<double> &matrix) {
+  simple_timer t("Reduction");
+  int count = matrix.Rows() * matrix.Columns();
   MPI_Datatype datatype = MPI_DOUBLE;
   MPI_Op op = MPI_SUM;
   MPI_Comm comm = MPI_COMM_WORLD;
   double sum = 0.0;
-  double * recvbuf = (double*)malloc((sizeof(double)) * cols);
-  for (int i = 0 ; i < rows ; i++) {
-    sendbuf = &(matrix[i][0]);
-    mpi_check(MPI_Allreduce( sendbuf, (void*)recvbuf, count, datatype, op, comm ));
-    for (int j = 0 ; j < cols ; j++) {
-      sum = sum + recvbuf[j];
+  Matrix<double> sum_matrix(matrix.Rows(), matrix.Columns());
+  const void * sendbuf = matrix.Data();
+  void * recvbuf = sum_matrix.Data();
+  mpi_check(MPI_Allreduce( sendbuf, recvbuf, count, datatype, op, comm ));
+  // reduce the matrix, for fun.
+  for (int i = 0 ; i < matrix.Rows() ; i++) {
+    for (int j = 0 ; j < matrix.Columns() ; j++) {
+      sum = sum + sum_matrix[i][j];
     }
   }
-  free(recvbuf);
   return sum;
 }
 
-void do_alltoall(double ** matrix, int rows, int cols) {
+void do_alltoall(Matrix<double> &matrix) {
+  simple_timer t("Alltoall");
+  int count = matrix.Rows() * matrix.Columns();
+  double * sendbuf = (double*)malloc((sizeof(double)) * count * _commsize);
+  int index = _commrank * count;
+  for (int i = 0 ; i < matrix.Rows() ; i++) {
+    for (int j = 0 ; j < matrix.Columns() ; j++) {
+      sendbuf[index++] = matrix[i][j];
+    }
+  }
+  void * recvbuf = malloc((sizeof(double)) * count * _commsize);
+  MPI_Datatype datatype = MPI_DOUBLE;
+  MPI_Comm comm = MPI_COMM_WORLD;
+  mpi_check(MPI_Alltoall( sendbuf, count, datatype, recvbuf, count, datatype, comm ));
 }
 
-void main_loop(void) {
+void main_loop(int iterations, int write_iteration) {
   int i;
   double total = 0;
   simple_timer tm("Total Time");
-  for (i = 0 ; i < max_iterations ; i++ ) {
+  for (i = 0 ; i < iterations ; i++ ) {
     /* output status */
     if (_commrank == 0) {
       std::cout << "iteration " << i << std::endl; fflush(stdout);
@@ -183,7 +171,7 @@ void main_loop(void) {
     {
       simple_timer t("Iteration");
       /* do work */
-      total += do_work(i);
+      total += do_work(i, (((i+1)%write_iteration) == 0));
     }
     /* wait for everyone to finish at the same time */
     MPI_Barrier(MPI_COMM_WORLD);

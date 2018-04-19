@@ -3,6 +3,7 @@
 #include "pthread.h"
 #include <thread>
 #include <unistd.h>
+#include "adios.h"
 
 // instantiate globals.
 int _commrank = 0;
@@ -11,6 +12,8 @@ int _daemon_rank = 0;
 bool _shutdown_daemon = false;
 bool _balanced = false;
 bool _got_message = false;
+const int _max_iterations = 10;
+const int _write_iteration = 1;
 
 inline unsigned int my_hardware_concurrency()
 {
@@ -39,14 +42,22 @@ void set_affinity() {
 }
 
 int main (int argc, char * argv[]) {
+  int iterations = _max_iterations;
+  int write_iteration = _write_iteration;
+  if (argc > 1) {
+    iterations = atoi(argv[1]);
+    write_iteration = atoi(argv[2]);
+  }
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &_commrank);
   MPI_Comm_size(MPI_COMM_WORLD, &_commsize);
   set_affinity();
+  adios_init ("matrix.xml", MPI_COMM_WORLD);
   printf("rank %d of %d, checking in.\n", _commrank, _commsize);
   MPI_Barrier(MPI_COMM_WORLD);
-  main_loop();
+  main_loop(iterations, write_iteration);
   zprint("finalizing.\n");
+  adios_finalize (_commrank);
   MPI_Finalize();
   return 0;
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<adios-config host-language="C">
+
+    <adios-group name="matrix">
+        <var name="NX" type="integer"/>
+        <var name="NY" type="integer"/>
+        <var name="var_double_2Darray"  gwrite="t"  type="double"  dimensions="NX,NY"/>
+    </adios-group>
+
+    <method group="matrix"  method="MPI"/>
+
+    <buffer max-size-MB="20"/>
+
+</adios-config>
+
