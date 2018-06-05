@@ -24,9 +24,7 @@ class simple_timer {
         std::chrono::duration_cast<
           std::chrono::duration<double>>(
           std::chrono::high_resolution_clock::now() - start);
-      std::stringstream ss;
-      ss << _commrank << ":" << _name << ": " << 
-        time_span.count() * seconds << " seconds" << std::endl;
-      zprint(ss.str().c_str());
+      zprint("%d:%s: %f seconds\n", _commrank, _name.c_str(), 
+        time_span.count() * seconds);
     }
 };
