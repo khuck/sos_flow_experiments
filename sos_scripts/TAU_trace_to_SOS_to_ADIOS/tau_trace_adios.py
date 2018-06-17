@@ -271,6 +271,9 @@ def writeMetaData(SOS, frame, adios_group, fd):
         comm_rank = str(r[1])
         value_name = str(r[2])
         value = str(r[3])
+        if value == "":
+            print "skipping", value_name
+            continue
         if prog_name not in prog_names:
             attr_name = "program_name " + str(len(prog_names))
             prog_names[prog_name] = len(prog_names)

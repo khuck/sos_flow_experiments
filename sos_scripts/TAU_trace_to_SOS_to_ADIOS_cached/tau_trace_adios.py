@@ -24,6 +24,7 @@ from collections import Counter
 import json
 from mpi4py import MPI
 import adios_mpi as ad
+from operator import itemgetter
 
 # Global attr, representing the "previous" frame
 aggregators = []
@@ -41,6 +42,8 @@ timers = {}
 counters = {}
 event_types = {}
 column_map = {}
+
+validation = {}
 
 #
 # NOTE: This script is intended to be run standalone, and to serve as an
@@ -216,8 +219,6 @@ def sosToADIOS():
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
         writeMetaData(SOS, next_frame, g, fd)
         writeTimerData(SOS, next_frame, g, fd)
-        #writeCounterData(SOS, next_frame, g, fd)
-        #writeCommData(SOS, next_frame, g, fd)
         ad.close(fd)
         # future iterations are appending, not writing
         adios_mode = "a"
@@ -337,7 +338,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
         value_name = str(r[value_name_index])
         value = str(r[value_index])
         if value == "":
-            print "skipping", value_name
+            #print "skipping", value_name
             continue
         if prog_name not in prog_names:
             attr_name = "program_name " + str(len(prog_names))
@@ -353,7 +354,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
         if thread not in threads:
             threads[thread] = len(threads)
         attr_name = "MetaData:" + str(prog_names[prog_name]) + ":" + comm_rank + ":" + thread + ":" + metadata_key
-        print attr_name,value
+        #print attr_name,value
         ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
 
     return
@@ -369,6 +370,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
     global groups
     global timers
     global event_types
+    global validation
 
     # Get the frame-specific timer data...
 
@@ -395,12 +397,23 @@ def writeTimerData(SOS, frame, adios_group, fd):
     comm_rank_index = column_map["comm_rank"]
     value_name_index = column_map["val_name"]
     value_index = column_map["val"]
+    frame_index = column_map["frame"]
+    time_index = column_map["time_pack"]
+    results = sorted(results, key=itemgetter(time_index))
 
     for r in results:
         prog_name  = str(r[prog_name_index])
         comm_rank  = str(r[comm_rank_index])
         value     = long(r[value_index])
         value_name = str(r[value_name_index])
+        row_frame = str(r[frame_index])
+        if int(row_frame) != frame:
+            #print row_frame, "!=", frame
+            continue
+        if prog_name not in validation:
+            validation[prog_name] = {}
+        if comm_rank not in validation[prog_name]:
+            validation[prog_name][comm_rank] = {}
         if "TAU_EVENT_ENTRY" in value_name or "TAU_EVENT_EXIT" in value_name:
             if prog_name not in prog_names:
                 attr_name = "program_name " + str(len(prog_names))
@@ -416,7 +429,9 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 attr_name = "event_type " + str(len(event_types))
                 event_types[event_type] = len(event_types)
                 ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, event_type, "")
-            thread = tokens[1]
+            thread = int(tokens[1])
+            if thread not in validation[prog_name][comm_rank]:
+                validation[prog_name][comm_rank][thread] = []
             timer = tokens[2]
             if thread not in threads:
                 threads[thread] = len(threads)
@@ -431,9 +446,19 @@ def writeTimerData(SOS, frame, adios_group, fd):
             timer_values_array[timer_index][4] = long(timers[timer])
             timer_values_array[timer_index][5] = long(value)
             timer_index = timer_index + 1
+            if "TAU_EVENT_ENTRY" in value_name:
+                validation[prog_name][comm_rank][thread].append(timer)
+            else:
+                if len(validation[prog_name][comm_rank][thread]) == 0:
+                    print "VALIDATION ERROR! empty stack", prog_name, comm_rank, thread, timer
+                    #sys.exit()
+                else:
+                    current_timer = validation[prog_name][comm_rank][thread].pop()
+                    if current_timer != timer:
+                        print "VALIDATION ERROR!", prog_name, comm_rank, thread, current_timer, "!=", timer
         elif "TAU_EVENT_COUNTER" in value_name:
             # convert the timestamp from seconds to usec
-            timestamp = float(r[4]) * 1000000
+            timestamp = float(r[time_index]) * 1000000
             if prog_name not in prog_names:
                 attr_name = "program_name " + str(len(prog_names))
                 prog_names[prog_name] = len(prog_names)
@@ -500,131 +525,19 @@ def writeTimerData(SOS, frame, adios_group, fd):
         ad.write_int(fd, "thread_count", len(threads))
         ad.write_int(fd, "timer_count", len(timers))
         ad.write_int(fd, "event_type_count", len(event_types))
-        ad.write_int(fd, "timer_event_count", len(results))
+        ad.write_int(fd, "timer_event_count", timer_index)
         ad.write_int(fd, "counter_count", len(counters))
-        ad.write_int(fd, "counter_event_count", len(results))
-        ad.write_int(fd, "comm_count", len(results))
+        ad.write_int(fd, "counter_event_count", counter_index)
+        ad.write_int(fd, "comm_count", comm_index)
+        np.resize(timer_values_array, (timer_index,6))
+        np.resize(counter_values_array, (counter_index,6))
+        np.resize(comm_values_array, (comm_index,8))
         ad.write(fd, "event_timestamps", timer_values_array)
         ad.write(fd, "counter_values", counter_values_array)
         ad.write(fd, "comm_timestamps", comm_values_array)
     return
 #
 #end:def writeTimerData(...)
-
-def writeCounterData(SOS, frame, adios_group, fd):
-    global config
-    global prog_names
-    global comm_ranks
-    global value_names
-    global threads
-    global counters
-
-    # Get the frame-specific counter data...
-
-    start = time.time()
-    #sqlValsToColByRank = "select prog_name, comm_rank, value, value_name, time_pack from viewCombined where (value_name like 'TAU_EVENT_COUNTER%') and frame = " + str(frame) + " order by time_pack;"
-    #results, col_names = queryAllAggregators(sqlValsToColByRank)
-    pub_filter = ""
-    val_filter = "TAU_EVENT_:"
-    frame_start = frame
-    frame_depth = 1
-    results, col_names = queryAllAggregatorsCache(pub_filter, val_filter, frame_start, frame_depth)
-
-    end = time.time()
-    print (end-start), "seconds for event query"
-
-    values_array = np.zeros(shape=(len(results),6), dtype=np.uint64)
-
-    index = 0
-    for r in results:
-        prog_name  = str(r[0])
-        comm_rank  = str(r[1])
-        value     = long(r[2])
-        value_name = str(r[3])
-    # now that the data is queried and in arrays, write it out to the file
-
-#
-#end:def writeCounterData(...)
-
-def writeCommData(SOS, frame, adios_group, fd):
-    global config
-    global prog_names
-    global comm_ranks
-    global value_names
-    global threads
-    global groups
-    global timers
-    global event_types
-
-    # Get the frame-specific timer data...
-
-    start = time.time()
-    #sqlValsToColByRank = "select prog_name, comm_rank, value, value_name from viewCombined where (value_name like 'TAU_EVENT_SEND%' or value_name like 'TAU_EVENT_RECV%') and frame = " + str(frame) + " order by value;"
-    #results, col_names = queryAllAggregators(sqlValsToColByRank)
-    pub_filter = ""
-    val_filter = "TAU_EVENT_:"
-    frame_start = frame
-    frame_depth = 1
-    results, col_names = queryAllAggregatorsCache(pub_filter, val_filter, frame_start, frame_depth)
-
-    end = time.time()
-    print (end-start), "seconds for communication query"
-
-    values_array = np.zeros(shape=(len(results),8), dtype=np.uint64)
-
-    index = 0
-    for r in results:
-        prog_name  = str(r[0])
-        comm_rank  = str(r[1])
-        value     = long(r[2])
-        value_name = str(r[3])
-        if "TAU_EVENT_SEND" not in value_name and "TAU_EVENT_RECV" not in value_name:
-            continue
-        if prog_name not in prog_names:
-            attr_name = "program_name " + str(len(prog_names))
-            prog_names[prog_name] = len(prog_names)
-            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, prog_name, "")
-        # may not be necessary...
-        if comm_rank not in comm_ranks:
-            comm_ranks[comm_rank] = len(comm_ranks)
-        # tease apart the event name
-        tokens = value_name.split(":", 2)
-        event_type = tokens[0].replace("TAU_EVENT_","")
-        if event_type not in event_types:
-            attr_name = "event_type " + str(len(event_types))
-            event_types[event_type] = len(event_types)
-            ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, event_type, "")
-        tokens = value_name.split(":", 4)
-        thread = tokens[1]
-        tag = tokens[2]
-        partner = tokens[3]
-        num_bytes = tokens[4]
-        if thread not in threads:
-            threads[thread] = len(threads)
-        values_array[index][0] = long(prog_names[prog_name])
-        values_array[index][1] = long(comm_ranks[comm_rank])
-        values_array[index][2] = long(threads[thread])
-        values_array[index][3] = long(event_types[event_type])
-        values_array[index][4] = long(tag)
-        values_array[index][5] = long(partner)
-        values_array[index][6] = long(num_bytes)
-        values_array[index][7] = long(value)
-        index = index + 1
-
-    # now that the data is queried and in arrays, write it out to the file
-
-    # initialize the ADIOS data
-    if config["output_adios"]:
-        # write the adios
-        ad.write_int(fd, "program_count", len(prog_names))
-        ad.write_int(fd, "comm_rank_count", len(comm_ranks))
-        ad.write_int(fd, "thread_count", len(threads))
-        ad.write_int(fd, "comm_count", len(results))
-        if len(results) > 0:
-            ad.write(fd, "comm_timestamps", values_array)
-    return
-#
-#end:def writeCommData(...)
 
 def printf(format, *args):
     sys.stdout.write(format % args)
@@ -633,7 +546,14 @@ def printf(format, *args):
 ###############################################################################
 
 if __name__ == "__main__":
+    global validation
     sosToADIOS()
+    for p in validation:
+        for r in validation[p]:
+            for t in validation[p][r]:
+                if len(validation[p][r][t]) != 0:
+                    print "VALIDATION ERROR!", p, r, t, validation[p][r][t], "was not exited"
+
     #end:FILE
 
 
