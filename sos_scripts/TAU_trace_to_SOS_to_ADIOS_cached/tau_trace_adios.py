@@ -209,21 +209,26 @@ def sosToADIOS():
 
     # Keep running until there are no more frames to wait for.
     # At runtime, this is a moving target, since next_frame gets updated.
-    while config["aggregators"]["runtime"] or next_frame < config["aggregators"]["maxframe"]:
+    done = False
+    total_count = 0
+    while (not done or total_count > 0) and (config["aggregators"]["runtime"] or next_frame < config["aggregators"]["maxframe"]):
         # wait for the next batch of frames
-        timeout = waitForServer(SOS, next_frame + 1)
+        if not done:
+            timeout = waitForServer(SOS, next_frame + 1)
         if timeout:
-            break
+            done = True
         print "Processing frame", next_frame
         start = time.time()
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
-        writeMetaData(SOS, next_frame, g, fd)
-        writeTimerData(SOS, next_frame, g, fd)
+        meta_count = writeMetaData(SOS, next_frame, g, fd)
+        timer_count = writeTimerData(SOS, next_frame, g, fd)
+        total_count = meta_count + timer_count
         ad.close(fd)
         # future iterations are appending, not writing
         adios_mode = "a"
-        # clean up the database for long runs
-        cleanDB(SOS, next_frame)
+        print "Processed", total_count, "rows"
+        if total_count == 0 and done:
+            break
         next_frame = next_frame + 1
         end = time.time()
         print "loop time:", str(end-start)
@@ -357,7 +362,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
         #print attr_name,value
         ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
 
-    return
+    return len(results)
 #
 #end:def writeMetaData(...)
 
@@ -407,8 +412,9 @@ def writeTimerData(SOS, frame, adios_group, fd):
         value     = long(r[value_index])
         value_name = str(r[value_name_index])
         row_frame = str(r[frame_index])
+        #print row_frame, prog_name, comm_rank, value_name
         if int(row_frame) != frame:
-            #print row_frame, "!=", frame
+            #print row_frame, "!=", frame, prog_name, comm_rank, value_name
             continue
         if prog_name not in validation:
             validation[prog_name] = {}
@@ -439,9 +445,13 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 attr_name = "timer " + str(len(timers))
                 timers[timer] = len(timers)
                 ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, timer, "")
+            if "MPI_Send" in value_name:
+                print value_name, thread
+            if "MPI_Recv" in value_name:
+                print value_name, thread
             timer_values_array[timer_index][0] = long(prog_names[prog_name])
             timer_values_array[timer_index][1] = long(comm_ranks[comm_rank])
-            timer_values_array[timer_index][2] = long(threads[thread])
+            timer_values_array[timer_index][2] = long(thread)
             timer_values_array[timer_index][3] = long(event_types[event_type])
             timer_values_array[timer_index][4] = long(timers[timer])
             timer_values_array[timer_index][5] = long(value)
@@ -478,7 +488,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, counter, "")
             counter_values_array[counter_index][0] = long(prog_names[prog_name])
             counter_values_array[counter_index][1] = long(comm_ranks[comm_rank])
-            counter_values_array[counter_index][2] = long(threads[thread])
+            counter_values_array[counter_index][2] = long(thread)
             counter_values_array[counter_index][3] = long(counters[counter])
             counter_values_array[counter_index][4] = long(value)
             counter_values_array[counter_index][5] = long(timestamp)
@@ -507,18 +517,20 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 threads[thread] = len(threads)
             comm_values_array[comm_index][0] = long(prog_names[prog_name])
             comm_values_array[comm_index][1] = long(comm_ranks[comm_rank])
-            comm_values_array[comm_index][2] = long(threads[thread])
+            comm_values_array[comm_index][2] = long(thread)
             comm_values_array[comm_index][3] = long(event_types[event_type])
             comm_values_array[comm_index][4] = long(tag)
             comm_values_array[comm_index][5] = long(partner)
             comm_values_array[comm_index][6] = long(num_bytes)
             comm_values_array[comm_index][7] = long(value)
             comm_index = comm_index + 1
-
+        else:
+            print "ERROR! unknown event:", prog_name, comm_rank, value_name
     # now that the data is queried and in arrays, write it out to the file
 
     # initialize the ADIOS data
-    if config["output_adios"]:
+    if config["output_adios"] and (timer_index > 0 or counter_index > 0 or comm_index > 0):
+    #if config["output_adios"]:
         # write the adios
         ad.write_int(fd, "program_count", len(prog_names))
         ad.write_int(fd, "comm_rank_count", len(comm_ranks))
@@ -535,7 +547,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
         ad.write(fd, "event_timestamps", timer_values_array)
         ad.write(fd, "counter_values", counter_values_array)
         ad.write(fd, "comm_timestamps", comm_values_array)
-    return
+    return len(results)
 #
 #end:def writeTimerData(...)
 
