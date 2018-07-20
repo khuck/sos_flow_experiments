@@ -121,6 +121,24 @@ def queryAllAggregatorsCache(pub_filter, val_filter, frame_start, frame_depth):
             allResults += results
     return allResults, col_names
 
+def queryAllAggregatorsManifest(pub_filter):
+    global sosPort
+    global aggregators
+    global SOS
+    allResults = None
+    # Iterate over the aggregators, running the query against each one.
+    # This could be done in parallel...
+    frames = []
+    for a in aggregators:
+        max_frame, results, col_names = SOS.request_pub_manifest(pub_filter,a,sosPort)
+        #print "\n...done."
+        if allResults == None:
+            allResults = results
+        else:
+            allResults += results
+        frames.append(max_frame)
+    return allResults, col_names, min(frames)
+
 
 def parseConfigFile():
     global config
@@ -151,6 +169,7 @@ def parseConfigFile():
 def sosToADIOS():
     global SOS
     global config
+    global validation
     parseConfigFile()
     SOS = SSOS()
 
@@ -205,6 +224,7 @@ def sosToADIOS():
     # first iteration, we are writing the file. after that, appending.
     adios_mode = "w"
 
+    waitForServer(SOS, 0)
     buildColumnMap(SOS)
 
     # Keep running until there are no more frames to wait for.
@@ -217,6 +237,8 @@ def sosToADIOS():
             timeout = waitForServer(SOS, next_frame + 1)
         if timeout:
             done = True
+        #if len(column_map) == 0:
+        #    buildColumnMap(SOS)
         print "Processing frame", next_frame
         start = time.time()
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
@@ -240,6 +262,11 @@ def sosToADIOS():
     # finalize SOS
     SOS.finalize();
 
+    for p in validation:
+        for r in validation[p]:
+            for t in validation[p][r]:
+                if len(validation[p][r][t]) != 0:
+                    print "VALIDATION ERROR!", p, r, t, validation[p][r][t], "was not exited"
     print "   ...DONE!"
     return
 #end:def sosToADIOS()
@@ -253,8 +280,8 @@ def buildColumnMap(SOS):
 
     pub_filter = ""
     val_filter = ""
-    frame_start = 0
-    frame_depth = 1
+    frame_start = -1
+    frame_depth = -1
 
     print "Getting column indices"
     col_names = []
@@ -269,7 +296,6 @@ def buildColumnMap(SOS):
 
 def waitForServer(SOS, frame):
     global config
-    global column_map
 
     # how many pubs are there at this frame?
     sum_expected = int(config["aggregators"]["expected_pubs"])
@@ -283,17 +309,23 @@ def waitForServer(SOS, frame):
     print "Looking for frame", str(frame)
     maxframe = 0
     timeouts = 0
-    while frame == 0 or timeouts < config["exit_after_n_timeouts"]:
+    while frame <= 1 or timeouts < config["exit_after_n_timeouts"]:
         # query all aggregators
-        results, col_names = queryAllAggregatorsCache(pub_filter, val_filter, frame_start, frame_depth)
-        frame_column = column_map["pub_guid"]
-        frames = [int(x[frame_column]) for x in results]
-        # How many unique pub_guid values do we have?
-        arrived = len(Counter(frames))
-        print arrived, "pubs have arrived at frame", frame
-        if arrived >= sum_expected:
-            # Everyone has arrived.
-            return False
+        results, col_names, max_frame = queryAllAggregatorsManifest(pub_filter)
+        if len(results) > 0:
+            print col_names
+            frame_column = col_names.index("pub_frame")
+            frames = [int(x[frame_column]) for x in results]
+            # How many unique pub_guid values do we have?
+            count = Counter(frames)
+            arrived = 0
+            for f in count:
+                if f >= frame:
+                    arrived = arrived + count[f]
+            print arrived, "pubs have arrived at frame", frame
+            if arrived >= sum_expected:
+                # Everyone has arrived.
+                return False
         time.sleep(config["server_timeout"])
         timeouts = timeouts + 1
     # Too many timeouts, exit.
@@ -336,12 +368,18 @@ def writeMetaData(SOS, frame, adios_group, fd):
     comm_rank_index = column_map["comm_rank"]
     value_name_index = column_map["val_name"]
     value_index = column_map["val"]
+    frame_index = column_map["frame"]
+    total_valid = len(results)
 
     for r in results:
         prog_name = str(r[prog_name_index])
         comm_rank = str(r[comm_rank_index])
         value_name = str(r[value_name_index])
         value = str(r[value_index])
+        this_frame = int(r[frame_index])
+        if this_frame != frame:
+            total_valid = total_valid - 1
+            continue
         if value == "":
             #print "skipping", value_name
             continue
@@ -362,7 +400,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
         #print attr_name,value
         ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, value, "")
 
-    return len(results)
+    return total_valid
 #
 #end:def writeMetaData(...)
 
@@ -404,7 +442,8 @@ def writeTimerData(SOS, frame, adios_group, fd):
     value_index = column_map["val"]
     frame_index = column_map["frame"]
     time_index = column_map["time_pack"]
-    results = sorted(results, key=itemgetter(time_index))
+    results = sorted(results, key=itemgetter(value_index))
+    total_valid = len(results)
 
     for r in results:
         prog_name  = str(r[prog_name_index])
@@ -414,7 +453,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
         row_frame = str(r[frame_index])
         #print row_frame, prog_name, comm_rank, value_name
         if int(row_frame) != frame:
-            #print row_frame, "!=", frame, prog_name, comm_rank, value_name
+            total_valid = total_valid - 1
             continue
         if prog_name not in validation:
             validation[prog_name] = {}
@@ -465,7 +504,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 else:
                     current_timer = validation[prog_name][comm_rank][thread].pop()
                     if current_timer != timer:
-                        print "VALIDATION ERROR!", prog_name, comm_rank, thread, current_timer, "!=", timer
+                        print "VALIDATION ERROR!", value, prog_names[prog_name], comm_rank, thread, timers[timer], "!= current: ", timers[current_timer]
         elif "TAU_EVENT_COUNTER" in value_name:
             # convert the timestamp from seconds to usec
             timestamp = float(r[time_index]) * 1000000
@@ -547,7 +586,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
         ad.write(fd, "event_timestamps", timer_values_array)
         ad.write(fd, "counter_values", counter_values_array)
         ad.write(fd, "comm_timestamps", comm_values_array)
-    return len(results)
+    return total_valid
 #
 #end:def writeTimerData(...)
 
@@ -558,13 +597,7 @@ def printf(format, *args):
 ###############################################################################
 
 if __name__ == "__main__":
-    global validation
     sosToADIOS()
-    for p in validation:
-        for r in validation[p]:
-            for t in validation[p][r]:
-                if len(validation[p][r][t]) != 0:
-                    print "VALIDATION ERROR!", p, r, t, validation[p][r][t], "was not exited"
 
     #end:FILE
 
