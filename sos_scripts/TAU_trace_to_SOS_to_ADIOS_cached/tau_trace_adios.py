@@ -70,7 +70,7 @@ def lookupAggregators():
     num_aggregators = int(config["aggregators"]["count"])
     for x in range(num_aggregators):
         first = sosMeetup + "/sosd.0000" + str(x) + ".key"
-        print "looking for", first
+        print ("looking for", first)
         while firstTime and not os.path.exists(first):
             time.sleep(1)
     firstTime = False
@@ -82,7 +82,7 @@ def lookupAggregators():
         fileHandle.close()
         hname = lineList[len(lineList)-1].strip()
         addr = socket.gethostbyname(hname)
-        print "Aggregator found:", hname, addr
+        print ("Aggregator found:", hname, addr)
         aggregators.append(hname)
 
 # Iterate over the running aggregators, and query them.
@@ -112,7 +112,7 @@ def queryAllAggregatorsCache(pub_filter, val_filter, frame_start, frame_depth):
     # Iterate over the aggregators, running the query against each one.
     # This could be done in parallel...
     for a in aggregators:
-        print a,sosPort,"pub: '",pub_filter,"' val: '",val_filter,"' frame:",frame_start," depth:",frame_depth
+        print (a,sosPort,"pub: '",pub_filter,"' val: '",val_filter,"' frame:",frame_start," depth:",frame_depth)
         results, col_names = SOS.cache_grab(pub_filter,val_filter,frame_start,frame_depth,a, sosPort)
         #print "\n...done."
         if allResults == None:
@@ -147,7 +147,7 @@ def parseConfigFile():
     # set the environment variables
     for var in config["sosd"]:
         if str(var) not in os.environ:
-            print "Setting", str(var), "to", config["sosd"][var]
+            print ("Setting", str(var), "to", config["sosd"][var])
             os.environ[str(var)] = config["sosd"][var]
     # set some defaults
     if "output_text" not in config:
@@ -215,7 +215,7 @@ def sosToADIOS():
         ad.define_var(g, "counter_values", "", ad.DATATYPE.unsigned_long, "counter_event_count,6", "counter_event_count,6", "0,0")
         ad.define_var(g, "comm_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
         ad.define_var(g, "comm_timestamps", "", ad.DATATYPE.unsigned_long, "comm_count,8", "comm_count,8", "0,0")
-        print "using ADIOS method:", str(config["adios_method"])
+        print ("using ADIOS method:", str(config["adios_method"]))
         ad.select_method(g, str(config["adios_method"]), "verbose=3", "")
 
     # wait for a frame to show up. Frame 0 (and maybe 1) are TAU metadata. 
@@ -239,7 +239,7 @@ def sosToADIOS():
             done = True
         #if len(column_map) == 0:
         #    buildColumnMap(SOS)
-        print "Processing frame", next_frame
+        print ("Processing frame", next_frame)
         start = time.time()
         fd = ad.open("TAU_metrics", "tau-metrics.bp", adios_mode)
         meta_count = writeMetaData(SOS, next_frame, g, fd)
@@ -248,12 +248,12 @@ def sosToADIOS():
         ad.close(fd)
         # future iterations are appending, not writing
         adios_mode = "a"
-        print "Processed", total_count, "rows"
+        print ("Processed", total_count, "rows")
         if total_count == 0 and done:
             break
         next_frame = next_frame + 1
         end = time.time()
-        print "loop time:", str(end-start)
+        print ("loop time:", str(end-start))
 
     # finalize adios
     if config["output_adios"]:
@@ -266,8 +266,8 @@ def sosToADIOS():
         for r in validation[p]:
             for t in validation[p][r]:
                 if len(validation[p][r][t]) != 0:
-                    print "VALIDATION ERROR!", p, r, t, validation[p][r][t], "was not exited"
-    print "   ...DONE!"
+                    print ("VALIDATION ERROR!", p, r, t, validation[p][r][t], "was not exited")
+    print ("   ...DONE!")
     return
 #end:def sosToADIOS()
 
@@ -283,7 +283,7 @@ def buildColumnMap(SOS):
     frame_start = -1
     frame_depth = -1
 
-    print "Getting column indices"
+    print ("Getting column indices")
     col_names = []
     while len(col_names) == 0:
         # query all aggregators
@@ -292,7 +292,7 @@ def buildColumnMap(SOS):
 
     column_map = {}
     for c in col_names:
-        column_map[c] = len(column_map)
+        column_map[str(c)] = len(column_map)
 
 def waitForServer(SOS, frame):
     global config
@@ -306,14 +306,14 @@ def waitForServer(SOS, frame):
     frame_depth = 1
 
     # how many pubs have gotten to the expected frame?
-    print "Looking for frame", str(frame)
+    print ("Looking for frame", str(frame))
     maxframe = 0
     timeouts = 0
     while frame <= 1 or timeouts < config["exit_after_n_timeouts"]:
         # query all aggregators
         results, col_names, max_frame = queryAllAggregatorsManifest(pub_filter)
         if len(results) > 0:
-            print col_names
+            print (col_names)
             frame_column = col_names.index("pub_frame")
             frames = [int(x[frame_column]) for x in results]
             # How many unique pub_guid values do we have?
@@ -322,7 +322,7 @@ def waitForServer(SOS, frame):
             for f in count:
                 if f >= frame:
                     arrived = arrived + count[f]
-            print arrived, "pubs have arrived at frame", frame
+            print (arrived, "pubs have arrived at frame", frame)
             if arrived >= sum_expected:
                 # Everyone has arrived.
                 return False
@@ -338,7 +338,7 @@ def cleanDB(SOS, frame):
         sqlstr = "delete from tblvals where frame < " + str(frame) + ";"
         results, col_names = queryAllAggregators(sqlstr)
         end = time.time()
-        print (end-start), "seconds for cleanup query"
+        print ((end-start), "seconds for cleanup query")
 
 def writeMetaData(SOS, frame, adios_group, fd):
     global config
@@ -363,7 +363,7 @@ def writeMetaData(SOS, frame, adios_group, fd):
     results, col_names = queryAllAggregatorsCache(pub_filter, val_filter, frame_start, frame_depth)
 
     end = time.time()
-    print (end-start), "seconds for metadata query"
+    print ((end-start), "seconds for metadata query")
     prog_name_index = column_map["prog_name"]
     comm_rank_index = column_map["comm_rank"]
     value_name_index = column_map["val_name"]
@@ -427,7 +427,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
     results, col_names = queryAllAggregatorsCache(pub_filter, val_filter, frame_start, frame_depth)
 
     end = time.time()
-    print (end-start), "seconds for event query"
+    print ((end-start), "seconds for event query")
 
     timer_values_array = np.zeros(shape=(len(results),6), dtype=np.uint64)
     counter_values_array = np.zeros(shape=(len(results),6), dtype=np.uint64)
@@ -448,7 +448,7 @@ def writeTimerData(SOS, frame, adios_group, fd):
     for r in results:
         prog_name  = str(r[prog_name_index])
         comm_rank  = str(r[comm_rank_index])
-        value     = long(r[value_index])
+        value     = int(r[value_index])
         value_name = str(r[value_name_index])
         row_frame = str(r[frame_index])
         #print row_frame, prog_name, comm_rank, value_name
@@ -485,26 +485,26 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 timers[timer] = len(timers)
                 ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, timer, "")
             if "MPI_Send" in value_name:
-                print value_name, thread
+                print (value_name, thread)
             if "MPI_Recv" in value_name:
-                print value_name, thread
-            timer_values_array[timer_index][0] = long(prog_names[prog_name])
-            timer_values_array[timer_index][1] = long(comm_ranks[comm_rank])
-            timer_values_array[timer_index][2] = long(thread)
-            timer_values_array[timer_index][3] = long(event_types[event_type])
-            timer_values_array[timer_index][4] = long(timers[timer])
-            timer_values_array[timer_index][5] = long(value)
+                print (value_name, thread)
+            timer_values_array[timer_index][0] = int(prog_names[prog_name])
+            timer_values_array[timer_index][1] = int(comm_ranks[comm_rank])
+            timer_values_array[timer_index][2] = int(thread)
+            timer_values_array[timer_index][3] = int(event_types[event_type])
+            timer_values_array[timer_index][4] = int(timers[timer])
+            timer_values_array[timer_index][5] = int(value)
             timer_index = timer_index + 1
             if "TAU_EVENT_ENTRY" in value_name:
                 validation[prog_name][comm_rank][thread].append(timer)
             else:
                 if len(validation[prog_name][comm_rank][thread]) == 0:
-                    print "VALIDATION ERROR! empty stack", prog_name, comm_rank, thread, timer
+                    print ("VALIDATION ERROR! empty stack", prog_name, comm_rank, thread, timer)
                     #sys.exit()
                 else:
                     current_timer = validation[prog_name][comm_rank][thread].pop()
                     if current_timer != timer:
-                        print "VALIDATION ERROR!", value, prog_names[prog_name], comm_rank, thread, timers[timer], "!= current: ", timers[current_timer]
+                        print ("VALIDATION ERROR!", value, prog_names[prog_name], comm_rank, thread, timers[timer], "!= current: ", timers[current_timer])
         elif "TAU_EVENT_COUNTER" in value_name:
             # convert the timestamp from seconds to usec
             timestamp = float(r[time_index]) * 1000000
@@ -525,12 +525,12 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 attr_name = "counter " + str(len(counters))
                 counters[counter] = len(counters)
                 ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, counter, "")
-            counter_values_array[counter_index][0] = long(prog_names[prog_name])
-            counter_values_array[counter_index][1] = long(comm_ranks[comm_rank])
-            counter_values_array[counter_index][2] = long(thread)
-            counter_values_array[counter_index][3] = long(counters[counter])
-            counter_values_array[counter_index][4] = long(value)
-            counter_values_array[counter_index][5] = long(timestamp)
+            counter_values_array[counter_index][0] = int(prog_names[prog_name])
+            counter_values_array[counter_index][1] = int(comm_ranks[comm_rank])
+            counter_values_array[counter_index][2] = int(thread)
+            counter_values_array[counter_index][3] = int(counters[counter])
+            counter_values_array[counter_index][4] = int(value)
+            counter_values_array[counter_index][5] = int(timestamp)
             counter_index = counter_index + 1
         elif "TAU_EVENT_SEND" in value_name or "TAU_EVENT_RECV" in value_name:
             if prog_name not in prog_names:
@@ -554,17 +554,17 @@ def writeTimerData(SOS, frame, adios_group, fd):
             num_bytes = tokens[4]
             if thread not in threads:
                 threads[thread] = len(threads)
-            comm_values_array[comm_index][0] = long(prog_names[prog_name])
-            comm_values_array[comm_index][1] = long(comm_ranks[comm_rank])
-            comm_values_array[comm_index][2] = long(thread)
-            comm_values_array[comm_index][3] = long(event_types[event_type])
-            comm_values_array[comm_index][4] = long(tag)
-            comm_values_array[comm_index][5] = long(partner)
-            comm_values_array[comm_index][6] = long(num_bytes)
-            comm_values_array[comm_index][7] = long(value)
+            comm_values_array[comm_index][0] = int(prog_names[prog_name])
+            comm_values_array[comm_index][1] = int(comm_ranks[comm_rank])
+            comm_values_array[comm_index][2] = int(thread)
+            comm_values_array[comm_index][3] = int(event_types[event_type])
+            comm_values_array[comm_index][4] = int(tag)
+            comm_values_array[comm_index][5] = int(partner)
+            comm_values_array[comm_index][6] = int(num_bytes)
+            comm_values_array[comm_index][7] = int(value)
             comm_index = comm_index + 1
         else:
-            print "ERROR! unknown event:", prog_name, comm_rank, value_name
+            print ("ERROR! unknown event:", prog_name, comm_rank, value_name)
     # now that the data is queried and in arrays, write it out to the file
 
     # initialize the ADIOS data
