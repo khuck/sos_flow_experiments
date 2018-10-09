@@ -58,7 +58,14 @@ export TAU_SOS_TRACING=1
 export TAU_PROFILE_FORMAT=merged
 export TAU_PROFILE_PREFIX=nwchem
 
-mpirun -n 2 /Codar/nwchem-1/bin/LINUX64/nwchem /Codar/nwchem-1/QA/tests/ethanol/ethanol_md.nw
+. ./etc/profile
+
+cd QA/tests/ethanol
+
+sed -i 's/coord 0/coord 1/' ethanol_md.nw
+sed -i 's/scoor 0/scoor 1/' ethanol_md.nw
+
+mpirun -n 2 ../../../bin/LINUX64/nwchem ethanol_md.nw
 
 sleep 10
 
