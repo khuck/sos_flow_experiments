@@ -19,7 +19,7 @@ done
 export SOS_ROOT=/Install/sosflow
 export ADIOS_ROOT=/Install/adios-1.13.1
 export PYTHONPATH=${SOS_ROOT}/bin:${SOS_ROOT}/lib:${ADIOS_ROOT}/lib/python2.7/site-packages:${PYTHONPATH}
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${SOS_ROOT}/lib:${ADIOS_ROOT}/lib/python2.7/site-packages/adios_mpi
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${SOS_ROOT}/lib:${ADIOS_ROOT}/lib/python2.7/site-packages/adios_mpi:/Install/EVPath/lib
 
 echo "Launching ADIOS trace export from SOS..."
 #python ./tau_trace_adios.py
