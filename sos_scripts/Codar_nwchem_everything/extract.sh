@@ -22,4 +22,4 @@ done
 
 echo "Launching ADIOS trace export from SOS..."
 #python ./tau_trace_adios.py
-python ./tau_trace_adios_cache.py
+python ../../../tau_trace_adios_cache.py

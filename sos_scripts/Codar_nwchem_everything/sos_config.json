@@ -1,10 +1,10 @@
 {
     "sosd":{
-        "SOS_WORK_DIR":"/Codar/nwchem-1",
-        "SOS_EVPATH_MEETUP":"/Codar/nwchem-1",
+        "SOS_WORK_DIR":"/Codar/nwchem-1/QA/tests/ethanol",
+        "SOS_EVPATH_MEETUP":"/Codar/nwchem-1/QA/tests/ethanol",
         "SOS_CMD_PORT":"22500"
     },
-    "outputdir":"/Codar/nwchem-1",
+    "outputdir":"/Codar/nwchem-1/QA/tests/ethanol",
 	"output_text":true,
 	"output_adios":true,
 	"adios_method":"POSIX",
