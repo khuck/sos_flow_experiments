@@ -42,7 +42,7 @@ export TAU_SOS_PERIOD=1000000 # once per second
 # Tell TAU where to find the SOS plugin.  This was built by TAU, if TAU was
 # configured with -sos=/path/to/sos/installation
 export TAU_PLUGINS=libTAU-sos-plugin.so
-export TAU_PLUGINS_PATH=/Intall/tau2/2018-10-04/x86_64/lib/shared-papi-mpi-pthread-pdt-sos-adios
+export TAU_PLUGINS_PATH=/Install/tau2-2018-10-04/x86_64/lib/shared-papi-mpi-pthread-pdt-sos-adios
 # To reduce the amount of data sent from TAU to SOS, use a filter file:
 # export TAU_SOS_SELECTION_FILE=`pwd`/sos_filter.txt
 # Tell TAU to send a full event trace to SOS:
