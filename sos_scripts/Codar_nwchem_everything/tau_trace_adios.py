@@ -16,7 +16,7 @@ import   os
 import   random
 import   re
 import   numpy  as  np
-from     ssos3   import SSOS
+from     ssos   import SSOS
 import copy
 import glob
 import socket
