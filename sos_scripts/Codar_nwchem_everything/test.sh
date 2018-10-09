@@ -67,6 +67,3 @@ sed -i 's/scoor 0/scoor 1/' ethanol_md.nw
 
 mpirun -n 2 ../../../bin/LINUX64/nwchem ethanol_md.nw
 
-sleep 30
-
-/Install/sosflow/bin/sosd_stop

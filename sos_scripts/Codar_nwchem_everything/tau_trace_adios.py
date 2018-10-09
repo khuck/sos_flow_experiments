@@ -241,7 +241,7 @@ def sosToADIOS():
         #    buildColumnMap(SOS)
         print ("Processing frame", next_frame)
         start = time.time()
-        fd = ad.open("TAU_metrics", config["outputdir"]+"/tau-metrics.bp", adios_mode)
+        fd = ad.open("TAU_metrics", str(config["outputdir"])+"/tau-metrics.bp", adios_mode)
         meta_count = writeMetaData(SOS, next_frame, g, fd)
         timer_count = writeTimerData(SOS, next_frame, g, fd)
         total_count = meta_count + timer_count

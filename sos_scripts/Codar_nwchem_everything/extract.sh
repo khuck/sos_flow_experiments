@@ -23,3 +23,6 @@ done
 echo "Launching ADIOS trace export from SOS..."
 #python ./tau_trace_adios.py
 python /Codar/nwchem-1/tau_trace_adios.py
+
+# Once the script has finished, exit the daemon
+/Install/sosflow/bin/sosd_stop
