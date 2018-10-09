@@ -484,10 +484,12 @@ def writeTimerData(SOS, frame, adios_group, fd):
                 attr_name = "timer " + str(len(timers))
                 timers[timer] = len(timers)
                 ad.define_attribute(adios_group, attr_name, "", ad.DATATYPE.string, timer, "")
+            """
             if "MPI_Send" in value_name:
                 print (value_name, thread)
             if "MPI_Recv" in value_name:
                 print (value_name, thread)
+            """
             timer_values_array[timer_index][0] = int(prog_names[prog_name])
             timer_values_array[timer_index][1] = int(comm_ranks[comm_rank])
             timer_values_array[timer_index][2] = int(thread)
