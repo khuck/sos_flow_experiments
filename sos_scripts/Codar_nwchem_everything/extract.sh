@@ -22,7 +22,15 @@ done
 
 echo "Launching ADIOS trace export from SOS..."
 #python ./tau_trace_adios.py
-python /Codar/nwchem-1/tau_trace_adios.py
+python /Codar/nwchem-1/tau_trace_adios.py &
+
+# Wait for that to startup
+while [ ! -f ${SOS_WORK}/tau-metrics.db ] ; do
+    echo "Waiting for ${SOS_WORK}/tau-metrics.db..."
+    sleep 1
+done
+
+bash /Chimbuko/PerformanceAnalysis/drivers/run_chimbuko.sh /Chimbuko/PerformanceAnalysis/drivers/chimbuko_tau-nwchem.cfg
 
 # Once the script has finished, exit the daemon
 /Install/sosflow/bin/sosd_stop
