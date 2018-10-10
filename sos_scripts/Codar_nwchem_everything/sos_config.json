@@ -7,7 +7,7 @@
     "outputdir":"/Codar/nwchem-1/QA/tests/ethanol",
 	"output_text":true,
 	"output_adios":true,
-	"adios_method":"POSIX",
+	"adios_method":"FLEXPATH",
     "aggregators":{
         "count":1,
         "expected_pubs":2,
