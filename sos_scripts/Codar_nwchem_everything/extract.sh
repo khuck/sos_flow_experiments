@@ -20,6 +20,8 @@ while [ ! -f ${SOS_WORK}/sosd.00000.key ] ; do
     sleep 1
 done
 
+rm -rf ${SOS_WORK}/QA/tests/ethanol/tau-metrics.bp*
+
 echo "Launching ADIOS trace export from SOS..."
 python /Codar/nwchem-1/tau_trace_adios.py >& /Codar/nwchem-1/sos_extract.out
 

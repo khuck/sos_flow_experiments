@@ -13,8 +13,8 @@ export SOS_EVPATH_MEETUP=`pwd`
 #export SOS_IN_MEMORY_DATABASE=1
 #export SOS_EXPORT_DB_AT_EXIT=verbose 
 export SOS_DB_DISABLED=1
-export TAU_SOS_CACHE_DEPTH=10
-export SOS_PUB_CACHE_DEPTH=10
+export TAU_SOS_CACHE_DEPTH=100
+export SOS_PUB_CACHE_DEPTH=100
 export TAU_VERBOSE=1
 
 # The ADIOS extraction script has to be launched on the same node as 
@@ -47,7 +47,7 @@ export TAU_SOS_PERIOD=1000000 # once per second
 export TAU_PLUGINS=libTAU-sos-plugin.so
 export TAU_PLUGINS_PATH=/Install/tau2-2018-10-04/x86_64/lib/shared-papi-mpi-pthread-pdt-sos-adios
 # To reduce the amount of data sent from TAU to SOS, use a filter file:
-# export TAU_SOS_SELECTION_FILE=`pwd`/sos_filter.txt
+export TAU_SOS_SELECTION_FILE=/Codar/nwchem-1/sos_filter.txt
 # Tell TAU to send a full event trace to SOS:
 export TAU_SOS_TRACING=1
 # The shutdown delay only matters when TAU spawns the listeners.
