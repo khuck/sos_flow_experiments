@@ -490,13 +490,6 @@ def writeTimerData(SOS, frame, adios_group, fd):
             if "MPI_Recv" in value_name:
                 print (value_name, thread)
             """
-            timer_values_array[timer_index][0] = int(prog_names[prog_name])
-            timer_values_array[timer_index][1] = int(comm_ranks[comm_rank])
-            timer_values_array[timer_index][2] = int(thread)
-            timer_values_array[timer_index][3] = int(event_types[event_type])
-            timer_values_array[timer_index][4] = int(timers[timer])
-            timer_values_array[timer_index][5] = int(value)
-            timer_index = timer_index + 1
             if "TAU_EVENT_ENTRY" in value_name:
                 validation[prog_name][comm_rank][thread].append(timer)
             else:
@@ -507,6 +500,14 @@ def writeTimerData(SOS, frame, adios_group, fd):
                     current_timer = validation[prog_name][comm_rank][thread].pop()
                     if current_timer != timer:
                         print ("VALIDATION ERROR!", value, prog_names[prog_name], comm_rank, thread, timers[timer], "!= current: ", timers[current_timer])
+                        timer = current_timer
+            timer_values_array[timer_index][0] = int(prog_names[prog_name])
+            timer_values_array[timer_index][1] = int(comm_ranks[comm_rank])
+            timer_values_array[timer_index][2] = int(thread)
+            timer_values_array[timer_index][3] = int(event_types[event_type])
+            timer_values_array[timer_index][4] = int(timers[timer])
+            timer_values_array[timer_index][5] = int(value)
+            timer_index = timer_index + 1
         elif "TAU_EVENT_COUNTER" in value_name:
             # convert the timestamp from seconds to usec
             timestamp = float(r[time_index]) * 1000000
