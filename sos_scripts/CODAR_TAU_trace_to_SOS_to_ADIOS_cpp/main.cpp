@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 int main (int argc, char * argv[]) {
+    PRINTSTACK
 
     std::string filename{"./config.json"};
     std::ifstream config_file(filename);
