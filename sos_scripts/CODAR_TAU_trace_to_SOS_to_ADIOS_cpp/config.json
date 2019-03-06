@@ -4,7 +4,8 @@
         "SOS_EVPATH_MEETUP":"/home/khuck/src/Example-Heat_Transfer/test_sos",
         "SOS_CMD_PORT":"22500",
         "hostname":"omega.nic.uoregon.edu",
-        "use_cache": false
+        "use_cache": false,
+        "usec_between_queries": 100000
     },
     "adios":{
         "outputdir":".",

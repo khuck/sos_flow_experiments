@@ -60,14 +60,18 @@ void sos::check_for_frame(int frame) {
                 break;
             }
         }
+        /* check all the pubs to make sure they are at the desired frame */
         for (int r = 0 ; r < results.row_count ; r++) {
             if (atoi(results.data[r][pf_index]) < frame) {
                 ready = false;
             }
         }
-        /* check all the pubs to make sure they are at the desired frame */
         SSOS_result_destroy(&results);
-        if (!ready) { usleep(100); }
+        if (!ready) { 
+            std::cout << ".";
+            fflush(stdout);
+            usleep(config["sosd"]["usec_between_queries"].get<int>()); 
+        }
     } while (!ready);
     std::cout << "Got frame " << frame << std::endl;
 }

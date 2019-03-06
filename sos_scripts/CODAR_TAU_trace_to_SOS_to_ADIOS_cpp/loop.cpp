@@ -7,7 +7,6 @@
 #include "sos_wrapper.hpp"
 #include "adios_wrapper.hpp"
 #include <nlohmann/json.hpp>
-#include <unistd.h>
 
 void main_loop(extractor::sos& my_sos, extractor::adios& my_adios) {
     PRINTSTACK
@@ -21,6 +20,5 @@ void main_loop(extractor::sos& my_sos, extractor::adios& my_adios) {
         /* If no more new frames, exit */
         //done = true;
         frame++;
-        sleep(1);
     } while (!done);
 }
