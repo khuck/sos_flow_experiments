@@ -7,7 +7,7 @@ JSON=$(HOME)/src/json-3.5.0
 CC = g++
 #CC_FLAGS = -w -I$(SOS)/include $(shell $ADIOS2/bin/adios2-config --cxx-flags)
 CC_FLAGS = -w -I$(JSON)/include -I$(SOS)/include -I$(ADIOS2)/include -std=c++11 -O0 -g
-LD_FLAGS = -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib
+LD_FLAGS = -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib $(shell $(ADIOS2)/bin/adios2-config --cxx-libs)
  
 # File names
 EXEC = extract

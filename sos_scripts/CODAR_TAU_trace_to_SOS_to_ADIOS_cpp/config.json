@@ -4,10 +4,12 @@
         "SOS_EVPATH_MEETUP":"/home/khuck/src/Example-Heat_Transfer/test_sos",
         "SOS_CMD_PORT":"22500"
     },
-    "outputdir":"/home/khuck/src/Example-Heat_Transfer/test_sos",
-	"output_text":true,
-	"output_adios":true,
-	"adios_method":"POSIX",
+    "adios":{
+        "outputdir":".",
+	    "filename":"tautrace.bp",
+	    "output_adios":true,
+	    "adios_method":"BPFile"
+    },
     "aggregators":{
         "count":1,
         "expected_pubs":8,
