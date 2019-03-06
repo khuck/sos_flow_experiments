@@ -92,6 +92,8 @@ class sos {
             if (connected && my_sos != nullptr) {
                 SOS_finalize(my_sos);
             }
+            connected = false;
+            my_sos = nullptr;
         };
 };
 
