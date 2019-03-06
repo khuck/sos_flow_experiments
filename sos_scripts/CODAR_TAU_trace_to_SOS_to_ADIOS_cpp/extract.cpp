@@ -5,7 +5,10 @@
 
 #include "sos.h"
 #include "adios2.h"
+#include <nlohmann/json.hpp>
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #define DEBUG
 #ifdef DEBUG
@@ -13,6 +16,8 @@
 #else // DEBUG
 #define PRINTSTACK 
 #endif // DEBUG
+
+using json = nlohmann::json;
 
 namespace extractor {
 
@@ -23,6 +28,11 @@ class sos {
     public:
         sos() : connected(false) {
             PRINTSTACK
+            // read a JSON file
+            std::ifstream i("./sos_config.json");
+            json j;
+            i >> j;
+            std::cout << std::setw(4) << j << std::endl;
         };
         ~sos() {
             PRINTSTACK
