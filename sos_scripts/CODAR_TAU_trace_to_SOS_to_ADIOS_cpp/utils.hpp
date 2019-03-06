@@ -25,7 +25,8 @@ class stackPrinter {
         }
         ~stackPrinter() { depth--; }
 };
-int stackPrinter::depth{1};
+
+inline int stackPrinter::depth{1};
 
 }; // end namespace extractor
 

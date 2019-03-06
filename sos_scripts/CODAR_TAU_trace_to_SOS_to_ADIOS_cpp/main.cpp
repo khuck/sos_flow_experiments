@@ -8,6 +8,9 @@
 #include "adios_wrapper.hpp"
 #include <nlohmann/json.hpp>
 
+// Defined in loop.cpp
+void main_loop(extractor::sos& my_sos, extractor::adios& my_adios);
+
 int main (int argc, char * argv[]) {
     PRINTSTACK
 
@@ -15,7 +18,6 @@ int main (int argc, char * argv[]) {
     std::ifstream config_file(filename);
     json config;
     config_file >> config;
-    //std::cout << std::setw(2) << config << std::endl;
 
     /* Connect to SOS */
     extractor::sos my_sos{config};
@@ -24,6 +26,7 @@ int main (int argc, char * argv[]) {
     extractor::adios my_adios{config};
 
     /* Loop until end of data */
+    main_loop(my_sos,  my_adios);
 
     /* Close ADIOS archive */
     my_adios.close();
