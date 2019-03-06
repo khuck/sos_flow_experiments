@@ -19,6 +19,8 @@ OBJECTS = $(SOURCES:.cpp=.o)
 # Main target
 $(EXEC): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(EXEC) $(LD_FLAGS)
+	codesign --force --deep --sign - ./$(EXEC)
+
  
 # To obtain object files
 %.o: %.cpp $(HEADERS) Makefile

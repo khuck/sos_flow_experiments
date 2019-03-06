@@ -7,6 +7,7 @@
 #include "sos_wrapper.hpp"
 #include "adios_wrapper.hpp"
 #include <nlohmann/json.hpp>
+#include <fstream>
 
 // Defined in loop.cpp
 void main_loop(extractor::sos& my_sos, extractor::adios& my_adios);
