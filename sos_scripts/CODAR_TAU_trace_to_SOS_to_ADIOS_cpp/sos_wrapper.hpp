@@ -37,7 +37,7 @@ class sos {
         void connect();
         void test_connection();
         void disconnect();
-        void check_for_frame(int frame);
+        bool check_for_frame(int frame);
         void sql_query(void);
         void cache_grab(void);
 };

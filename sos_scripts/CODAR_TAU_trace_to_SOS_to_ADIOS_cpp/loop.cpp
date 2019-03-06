@@ -14,7 +14,7 @@ void main_loop(extractor::sos& my_sos, extractor::adios& my_adios) {
     int frame = 0;
     do {
         /* Check for complete new frame */
-        my_sos.check_for_frame(frame);
+        done = !(my_sos.check_for_frame(frame));
         /* Query new frame of events */
         /* Write the new events */
         /* If no more new frames, exit */

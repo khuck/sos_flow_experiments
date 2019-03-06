@@ -28,7 +28,7 @@ $(EXEC): $(OBJECTS)
  
 # To remove generated files
 clean:
-	rm -f $(EXEC) $(OBJECTS)
+	rm -rf $(EXEC) $(OBJECTS) tautrace.bp*
 
 test: $(EXEC)
 	./$(EXEC)

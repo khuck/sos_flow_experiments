@@ -18,7 +18,7 @@ void sos::connect() {
     SSOS_init("extractor");
     connected = true;
     if (config["sosd"]["SOS_CMD_PORT"] != nullptr) {
-        portnumber = atoi(config["sosd"]["SOS_CMD_PORT"].get<std::string>().c_str());
+        portnumber = config["sosd"]["SOS_CMD_PORT"].get<int>();
     }
     if (config["sosd"]["hostname"] != nullptr) {
         hostname = config["sosd"]["hostname"].get<std::string>();
@@ -43,14 +43,18 @@ void sos::disconnect() {
     connected = false;
 };
 
-void sos::check_for_frame(int frame) {
+bool sos::check_for_frame(int frame) {
     SSOS_query_results results;
     int max_frame_overall{0};
     bool ready = true;
+    bool use_timeout = config["sosd"]["server_timeout"].get<bool>();
+    int max_loops = config["sosd"]["exit_after_n_timeouts"].get<int>();
+    int not_ready_loops = 0;
+    bool quit = false;
     do {
         SSOS_request_pub_manifest(&results, &max_frame_overall, "", hostname.c_str(), portnumber);
-        //std::cout << "Max frame: " << max_frame_overall << std::endl;
-        //SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
+        // std::cout << "Max frame: " << max_frame_overall << std::endl;
+        // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
         /* find the "pub_frame" column */
         const char * pf = "pub_frame";
         int pf_index;
@@ -68,12 +72,18 @@ void sos::check_for_frame(int frame) {
         }
         SSOS_result_destroy(&results);
         if (!ready) { 
+            if (use_timeout && (not_ready_loops > max_loops)) {
+                quit = true;
+                return false;
+            }
+            not_ready_loops++;
             std::cout << ".";
             fflush(stdout);
             usleep(config["sosd"]["usec_between_queries"].get<int>()); 
         }
-    } while (!ready);
+    } while (!ready && !quit);
     std::cout << "Got frame " << frame << std::endl;
+    return true;
 }
 
 void sos::sql_query() {

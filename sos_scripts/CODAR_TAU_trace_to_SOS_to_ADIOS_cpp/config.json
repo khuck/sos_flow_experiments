@@ -1,25 +1,23 @@
 {
     "sosd":{
-        "SOS_WORK_DIR":"/home/khuck/src/Example-Heat_Transfer/test_sos",
-        "SOS_EVPATH_MEETUP":"/home/khuck/src/Example-Heat_Transfer/test_sos",
-        "SOS_CMD_PORT":"22500",
+        "SOS_WORK_DIR": "/home/khuck/src/Example-Heat_Transfer/test_sos",
+        "SOS_EVPATH_MEETUP": "/home/khuck/src/Example-Heat_Transfer/test_sos",
+        "SOS_CMD_PORT": 22500,
         "hostname":"omega.nic.uoregon.edu",
-        "use_cache": false,
-        "usec_between_queries": 100000
+        "use_cache": true,
+        "usec_between_queries": 100000,
+        "server_timeout": true,
+        "exit_after_n_timeouts": 3,
+        "clean_database_after_frame": true,
+        "aggregators" :{
+            "count": 1,
+            "expected_pubs": 8
+        }
     },
     "adios":{
-        "outputdir":".",
-	    "filename":"tautrace.bp",
-	    "output_adios":true,
-	    "adios_method":"BPFile"
-    },
-    "aggregators":{
-        "count":1,
-        "expected_pubs":8,
-        "runtime":true,
-        "maxframe":12
-    },
-	"server_timeout":1,
-	"exit_after_n_timeouts":3,
-	"clean_database_after_frame":true
+        "outputdir": ".",
+        "filename": "tautrace.bp",
+        "output_adios": true,
+        "adios_method": "BPFile"
+    }
 }

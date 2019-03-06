@@ -18,7 +18,7 @@ class stackPrinter {
     public:
         stackPrinter(const char * name) {
             for (int i = 0 ; i < depth ; i++) {
-                std::cout << "--"; 
+                std::cout << "-"; 
             } 
             std::cout << " " << name << std::endl;
             depth++;
@@ -26,7 +26,7 @@ class stackPrinter {
         ~stackPrinter() { depth--; }
 };
 
-inline int stackPrinter::depth{1};
+inline int stackPrinter::depth{0};
 
 }; // end namespace extractor
 
