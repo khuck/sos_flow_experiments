@@ -11,7 +11,7 @@
         "clean_database_after_frame": true,
         "aggregators" :{
             "count": 1,
-            "expected_pubs": 8
+            "expected_pubs": 1
         }
     },
     "adios":{

@@ -49,6 +49,7 @@ bool sos::check_for_frame(int frame) {
     bool ready = true;
     bool use_timeout = config["sosd"]["server_timeout"].get<bool>();
     int max_loops = config["sosd"]["exit_after_n_timeouts"].get<int>();
+    int expected_pubs = config["sosd"]["aggregators"]["expected_pubs"].get<int>();
     int not_ready_loops = 0;
     bool quit = false;
     do {
@@ -65,9 +66,13 @@ bool sos::check_for_frame(int frame) {
             }
         }
         /* check all the pubs to make sure they are at the desired frame */
-        for (int r = 0 ; r < results.row_count ; r++) {
-            if (atoi(results.data[r][pf_index]) < frame) {
-                ready = false;
+        if (results.row_count < expected_pubs) {
+            ready = false;
+        } else {
+            for (int r = 0 ; r < results.row_count ; r++) {
+                if (atoi(results.data[r][pf_index]) < frame) {
+                    ready = false;
+                }
             }
         }
         SSOS_result_destroy(&results);
@@ -83,7 +88,83 @@ bool sos::check_for_frame(int frame) {
         }
     } while (!ready && !quit);
     std::cout << "Got frame " << frame << std::endl;
+    static bool first_frame{true};
+    if (first_frame) {
+        build_column_map();
+        first_frame = false;
+    }
     return true;
+}
+
+void sos::build_column_map() {
+    SSOS_query_results results;
+    SSOS_cache_grab("", "", 0, 1, hostname.c_str(), portnumber);
+    SSOS_result_claim(&results);
+    for (int c = 0 ; c < results.col_count ; c++) {
+        column_map[results.col_names[c]] = c;
+    }
+    for (auto element : column_map) {
+        std::cout << element.first << "::" << element.second << std::endl;
+    }
+}
+
+std::vector<std::string> sos::split(const std::string& s, char delimiter)
+{
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(s);
+   while (std::getline(tokenStream, token, delimiter))
+   {
+      tokens.push_back(token);
+   }
+   return tokens;
+}
+
+void sos::write_metadata(int frame, adios& my_adios) {
+    SSOS_query_results results;
+    SSOS_cache_grab("", "TAU_Metadata", frame, 1, hostname.c_str(), portnumber);
+    SSOS_result_claim(&results);
+    int prog_name_index = column_map["prog_name"];
+    int comm_rank_index = column_map["comm_rank"];
+    int value_name_index = column_map["val_name"];
+    int value_index = column_map["val"];
+    int frame_index = column_map["frame"];
+    int total_valid = results.row_count;
+    // iterate over the rows
+    for (int r = 0 ; r < results.row_count ; r++) {
+        char * prog_name = results.data[r][prog_name_index];
+        char * comm_rank = results.data[r][comm_rank_index];
+        char * value_name = results.data[r][value_name_index];
+        char * value = results.data[r][value_index];
+        int this_frame = atoi(results.data[r][frame_index]);
+        if (this_frame != frame) {
+            total_valid = total_valid - 1;
+            continue;
+        }
+        if (strcmp(value, "") == 0) {
+            continue;
+        }
+        if (prog_names.count(prog_name) == 0) {
+            std::stringstream ss;
+            ss << "program_name " << prog_names.size();
+            prog_names[prog_name] = prog_names.size();
+            my_adios.define_attribute(ss.str(), prog_name);
+        }
+        if (comm_ranks.count(comm_rank) == 0) {
+            comm_ranks[comm_rank] = comm_ranks.size();
+        }
+        // tease apart the metadata name.
+        auto tokens = split(value_name, ':');
+        // thread = tokens[1]
+        // metadata_key = tokens[2]
+        if (threads.count(tokens[1]) == 0) {
+            threads[tokens[1]] = threads.size();
+        }
+        std::stringstream attr_name;
+        attr_name << "MetaData:" << prog_names[prog_name];
+        attr_name << ":" << comm_rank << ":" << tokens[1] << ":" << tokens[2];
+        my_adios.define_attribute(attr_name.str(), value);
+    }
 }
 
 void sos::sql_query() {
