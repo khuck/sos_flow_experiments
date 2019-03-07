@@ -5,6 +5,7 @@
 
 #include "adios_wrapper.hpp"
 #include "adios2.h"
+#include <unordered_set>
 
 namespace extractor {
 
@@ -96,7 +97,12 @@ void adios::define_attribute(std::string name, std::string value, int nid, int t
 
 void adios::define_attribute(std::string name, std::string value) {
     PRINTSTACK
-    bpIO.DefineAttribute<std::string>(name, value);
+    std::cout << name << "::" << value << std::endl;
+    static std::unordered_set<std::string> seen;
+    if (seen.count(name) == 0) {
+        seen.insert(name);
+        bpIO.DefineAttribute<std::string>(name, value);
+    }
 }
 
 }; // end namespace extractor
