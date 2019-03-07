@@ -1,6 +1,6 @@
 # Library locations
 SOS=$(HOME)/src/sos_flow/install
-ADIOS2=$(HOME)/src/adios2_greg/install_nompi
+ADIOS2=$(HOME)/src/adios2_sst/install_nompi
 JSON=$(HOME)/src/json-3.5.0
 
 # Declaration of variables
@@ -32,3 +32,4 @@ clean:
 
 test: $(EXEC)
 	./$(EXEC)
+	$(ADIOS2)/../build/bin/bpls -A -D -d ./tautrace.bp
