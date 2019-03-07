@@ -35,8 +35,11 @@ class adios {
             close();
         };
         void initialize();
+        void declare_variables();
         void open();
         void close();
+        void define_attribute(std::string name, std::string value);
+        void define_attribute(std::string name, std::string value, int nid, int tid);
 };
 
 }; // end namespace extractor
