@@ -35,7 +35,7 @@ class adios {
             close();
         };
         void initialize();
-        void declare_variables();
+        void define_variables();
         void open();
         void close();
         void define_attribute(std::string name, std::string value);

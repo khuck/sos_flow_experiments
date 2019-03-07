@@ -25,7 +25,8 @@ void adios::initialize() {
     bpIO.AddTransport("File", {{"Library", "POSIX"}});
 }
 
-void adios::declare_variables(void) {
+void adios::define_variables(void) {
+    PRINTSTACK
 /*
         g = ad.declare_group("TAU_metrics", "", ad.FLAG.YES)
         ad.define_var(g, "program_count", "", ad.DATATYPE.unsigned_integer, "", "", "")
@@ -57,16 +58,17 @@ void adios::declare_variables(void) {
 
 /*
     Nx = 6;
-    bpIO.DefineVariable<int>("event_timestamps", shape, start, count, adios2::ConstantDims);
-    bpIO.DefineVariable<int>("counter_values", shape, start, count, adios2::ConstantDims);
+    bpIO.DefineVariable<long>("event_timestamps", shape, start, count, adios2::ConstantDims);
+    bpIO.DefineVariable<long>("counter_values", shape, start, count, adios2::ConstantDims);
     Nx = 8;
-    bpIO.DefineVariable<int>("comm_timestamps", shape, start, count, adios2::ConstantDims);
+    bpIO.DefineVariable<long>("comm_timestamps", shape, start, count, adios2::ConstantDims);
     */
 }
 
 void adios::open() {
     PRINTSTACK
     if (!opened) {
+        define_variables();
         std::stringstream ss;
         ss << config["adios"]["outputdir"].get<std::string>();
         ss << "/";
@@ -86,12 +88,14 @@ void adios::close() {
 };
 
 void adios::define_attribute(std::string name, std::string value, int nid, int tid) {
+    PRINTSTACK
     std::stringstream ss;
     ss << "TAU:" << nid << ":" << tid << ":MetaData:" << name;
     bpIO.DefineAttribute<std::string>(ss.str(), value.c_str());
 }
 
 void adios::define_attribute(std::string name, std::string value) {
+    PRINTSTACK
     bpIO.DefineAttribute<std::string>(name, value);
 }
 

@@ -54,7 +54,7 @@ bool sos::check_for_frame(int frame) {
     do {
         SSOS_request_pub_manifest(&results, &max_frame_overall, "", hostname.c_str(), portnumber);
         // std::cout << "Max frame: " << max_frame_overall << std::endl;
-        SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
+        // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
         /* find the "pub_frame" column */
         const char * pf = "pub_frame";
         int pf_index;
