@@ -103,9 +103,11 @@ void sos::build_column_map() {
     for (int c = 0 ; c < results.col_count ; c++) {
         column_map[results.col_names[c]] = c;
     }
+    /*
     for (auto element : column_map) {
         std::cout << element.first << "::" << element.second << std::endl;
     }
+    */
 }
 
 std::vector<std::string> sos::split(const std::string& s, char delimiter)

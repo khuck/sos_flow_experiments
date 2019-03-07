@@ -88,16 +88,8 @@ void adios::close() {
     }
 };
 
-void adios::define_attribute(std::string name, std::string value, int nid, int tid) {
-    PRINTSTACK
-    std::stringstream ss;
-    ss << "TAU:" << nid << ":" << tid << ":MetaData:" << name;
-    bpIO.DefineAttribute<std::string>(ss.str(), value.c_str());
-}
-
 void adios::define_attribute(std::string name, std::string value) {
     PRINTSTACK
-    std::cout << name << "::" << value << std::endl;
     static std::unordered_set<std::string> seen;
     if (seen.count(name) == 0) {
         seen.insert(name);
