@@ -7,6 +7,7 @@
 #include "ssos.h"
 #include "sosa.h"
 #include <iostream>
+#include <vector>
 #include <string.h>
 #include "sos_wrapper.hpp"
 #include <unistd.h>
@@ -68,10 +69,12 @@ bool sos::check_for_frame(int frame) {
         /* check all the pubs to make sure they are at the desired frame */
         if (results.row_count < expected_pubs) {
             ready = false;
+            std::cout << expected_pubs << " pubs not seen yet." << std::endl;
         } else {
             for (int r = 0 ; r < results.row_count ; r++) {
                 if (atoi(results.data[r][pf_index]) < frame) {
                     ready = false;
+                    std::cout << "pubs not at frame " << frame << " yet." << std::endl;
                 }
             }
         }
@@ -82,8 +85,6 @@ bool sos::check_for_frame(int frame) {
                 return false;
             }
             not_ready_loops++;
-            std::cout << ".";
-            fflush(stdout);
             usleep(config["sosd"]["usec_between_queries"].get<int>()); 
         }
     } while (!ready && !quit);
@@ -103,6 +104,12 @@ void sos::build_column_map() {
     for (int c = 0 ; c < results.col_count ; c++) {
         column_map[results.col_names[c]] = c;
     }
+    prog_name_index = column_map["prog_name"];
+    comm_rank_index = column_map["comm_rank"];
+    value_name_index = column_map["val_name"];
+    value_index = column_map["val"];
+    frame_index = column_map["frame"];
+    time_index = column_map["time_pack"];
     /*
     for (auto element : column_map) {
         std::cout << element.first << "::" << element.second << std::endl;
@@ -122,51 +129,103 @@ std::vector<std::string> sos::split(const std::string& s, char delimiter)
    return tokens;
 }
 
+void sos::check_prog_name(char * prog_name, adios& my_adios) {
+    if (prog_names.count(prog_name) == 0) {
+        std::stringstream ss;
+        ss << "program_name " << prog_names.size();
+        prog_names[prog_name] = prog_names.size();
+        my_adios.define_attribute(ss.str(), prog_name);
+    }
+}
+
+void sos::check_comm_rank(char * comm_rank) {
+    if (comm_ranks.count(comm_rank) == 0) {
+        comm_ranks[comm_rank] = comm_ranks.size();
+    }
+}
+
+void sos::check_thread(std::string& thread) {
+    if (threads.count(thread) == 0) {
+        threads[thread] = threads.size();
+    }
+}
+
 void sos::write_metadata(int frame, adios& my_adios) {
     SSOS_query_results results;
     SSOS_cache_grab("", "TAU_Metadata", frame, 1, hostname.c_str(), portnumber);
     SSOS_result_claim(&results);
-    int prog_name_index = column_map["prog_name"];
-    int comm_rank_index = column_map["comm_rank"];
-    int value_name_index = column_map["val_name"];
-    int value_index = column_map["val"];
-    int frame_index = column_map["frame"];
+    //SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
     int total_valid = results.row_count;
     // iterate over the rows
     for (int r = 0 ; r < results.row_count ; r++) {
-        char * prog_name = results.data[r][prog_name_index];
-        char * comm_rank = results.data[r][comm_rank_index];
-        char * value_name = results.data[r][value_name_index];
-        char * value = results.data[r][value_index];
         int this_frame = atoi(results.data[r][frame_index]);
         if (this_frame != frame) {
             total_valid = total_valid - 1;
             continue;
         }
+        char * prog_name = results.data[r][prog_name_index];
+        char * comm_rank = results.data[r][comm_rank_index];
+        char * value_name = results.data[r][value_name_index];
+        char * value = results.data[r][value_index];
         if (strcmp(value, "") == 0) {
             continue;
         }
-        if (prog_names.count(prog_name) == 0) {
-            std::stringstream ss;
-            ss << "program_name " << prog_names.size();
-            prog_names[prog_name] = prog_names.size();
-            my_adios.define_attribute(ss.str(), prog_name);
-        }
-        if (comm_ranks.count(comm_rank) == 0) {
-            comm_ranks[comm_rank] = comm_ranks.size();
-        }
+        check_prog_name(prog_name, my_adios);
+        check_comm_rank(comm_rank);
         // tease apart the metadata name.
         auto tokens = split(value_name, ':');
         // thread = tokens[1]
         // metadata_key = tokens[2]
-        if (threads.count(tokens[1]) == 0) {
-            threads[tokens[1]] = threads.size();
-        }
+        check_thread(tokens[1]);
         std::stringstream attr_name;
         attr_name << "MetaData:" << prog_names[prog_name];
         attr_name << ":" << comm_rank << ":" << tokens[1] << ":" << tokens[2];
         my_adios.define_attribute(attr_name.str(), value);
     }
+    SSOS_result_destroy(&results);
+}
+
+void sos::write_timer_data(int frame, adios& my_adios) {
+    SSOS_query_results results;
+    SSOS_cache_grab("", "TAU_EVENT", frame, 1, hostname.c_str(), portnumber);
+    SSOS_result_claim(&results);
+    total_valid = results.row_count;
+    // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
+    std::vector<long> timer_values_array{total_valid * 6};
+    std::vector<long> counter_values_array{total_valid * 6};
+    std::vector<long> comm_values_array{total_valid * 8};
+
+    int timer_index = 0;
+    int counter_index = 0;
+    int comm_index = 0;
+    /* create sorted tree of indexes into the results, ordered by
+     * the timestamp, which is the value */
+    std::vector< std::pair <long,int> > sorted;
+    total_valid = results.row_count;
+    for (int r = 0 ; r < results.row_count ; r++) {
+        // can't use the timestamp, must sort by the pack time stamp.
+        //sorted.push_back(std::make_pair(atol(results.data[r][value_index]),r));
+        sorted.push_back(std::make_pair((atof(results.data[r][time_index]) * 1000000),r));
+    }
+    sort(sorted.begin(), sorted.end());
+    for(auto iter = sorted.begin(); iter != sorted.end(); ++iter) {
+        long timestamp = iter->first;
+        int r = iter->second;
+        std::cout << timestamp << " " << results.data[r][value_name_index] << std::endl;
+        int row_frame = atoi(results.data[r][frame_index]);
+        if (row_frame != frame) {
+            total_valid = total_valid - 1;
+            continue;
+        }
+        char * prog_name = results.data[r][prog_name_index];
+        char * comm_rank = results.data[r][comm_rank_index];
+        char * value_name = results.data[r][value_name_index];
+        char * value = results.data[r][value_index];
+        check_prog_name(prog_name, my_adios);
+        check_comm_rank(comm_rank);
+    }
+
+    SSOS_result_destroy(&results);
 }
 
 void sos::sql_query() {
@@ -182,6 +241,7 @@ void sos::cache_grab() {
     SSOS_cache_grab("", "", -1, 10, hostname.c_str(), portnumber);
     SSOS_result_claim(&results);
     SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
+    SSOS_result_destroy(&results);
 }
 
 }; // end namespace extractor

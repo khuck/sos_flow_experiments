@@ -18,8 +18,8 @@ void main_loop(extractor::sos& my_sos, extractor::adios& my_adios) {
         /* Query new frame of events */
         my_sos.write_metadata(frame, my_adios);
         /* Write the new events */
-        /* If no more new frames, exit */
-        //done = true;
+        my_sos.write_timer_data(frame, my_adios);
         frame++;
+        /* If no more new frames, exit */
     } while (!done);
 }
