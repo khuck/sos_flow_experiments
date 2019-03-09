@@ -223,6 +223,17 @@ void sos::write_timer_data(int frame, adios& my_adios) {
         char * value = results.data[r][value_index];
         check_prog_name(prog_name, my_adios);
         check_comm_rank(comm_rank);
+        if ((strstr(value_name, "TAU_EVENT_ENTRY") != NULL) ||
+            (strstr(value_name, "TAU_EVENT_EXIT") != NULL)) {
+        } else if (strstr(value_name, "TAU_EVENT_COUNTER") != NULL) {
+        } else if ((strstr(value_name, "TAU_EVENT_SEND") != NULL) ||
+                   (strstr(value_name, "TAU_EVENT_RECV") != NULL)) {
+        } else {
+            std::cerr << "Error: unknown event: " 
+                      << prog_name << ", " 
+                      << comm_rank << ", " 
+                      << value_name << std::endl;
+        }
     }
 
     SSOS_result_destroy(&results);
