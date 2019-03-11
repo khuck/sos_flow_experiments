@@ -44,7 +44,7 @@ void adios::define_variables(void) {
     counter_event_count = bpIO.DefineVariable<size_t>("counter_event_count");
     comm_count = bpIO.DefineVariable<size_t>("comm_count");
 
-    event_timestamps = bpIO.DefineVariable<unsigned long>("event_timestamps", {1, 6}, {0, 0}, {0, 0});
+    event_timestamps = bpIO.DefineVariable<unsigned long>("event_timestamps", {6}, {0}, {6});
 /*
     counter_values = bpIO.DefineVariable<long>("counter_values", {6}, {0}, {0});
     comm_timestamps = bpIO.DefineVariable<long>("comm_timestamps", {6}, {0}, {0});
@@ -116,12 +116,15 @@ void adios::write_variables(sos& my_sos,
     event_timestamps.SetShape(timer_shape);
     event_timestamps.SetSelection(timer_selection);
 */
-    event_timestamps.SetShape({num_timer_values});
-    const adios2::Dims timer_start{static_cast<size_t>(0)};
-    const adios2::Dims timer_count{static_cast<size_t>(num_timer_values)};
-    const adios2::Box<adios2::Dims> timer_selection{timer_start, timer_count};
-    event_timestamps.SetSelection(timer_selection);
-    bpWriter.Put(event_timestamps, timer_values_array.data());
+    if (num_timer_values > 0) {
+        std::cout << "Writing " << num_timer_values << " timer values." << std::endl;
+        event_timestamps.SetShape({num_timer_values});
+        const adios2::Dims timer_start{static_cast<size_t>(0)};
+        const adios2::Dims timer_count{static_cast<size_t>(num_timer_values)};
+        const adios2::Box<adios2::Dims> timer_selection{timer_start, timer_count};
+        event_timestamps.SetSelection(timer_selection);
+        bpWriter.Put(event_timestamps, timer_values_array.data());
+    }
 /*
 
     //counter_values.SetShape({(size_t) num_counter_values});
