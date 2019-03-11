@@ -14,12 +14,15 @@ void main_loop(extractor::sos& my_sos, extractor::adios& my_adios) {
     int frame = 0;
     do {
         /* Check for complete new frame */
-        done = !(my_sos.check_for_frame(frame));
-        /* Query new frame of events */
-        my_sos.write_metadata(frame, my_adios);
-        /* Write the new events */
-        my_sos.write_timer_data(frame, my_adios);
-        frame++;
+        if (my_sos.check_for_frame(frame)) {
+            /* Write the new metadata */
+            my_sos.write_metadata(frame, my_adios);
+            /* Write the new events */
+            my_sos.write_timer_data(frame, my_adios);
+            frame++;
+        } else { 
+            done = true; 
+        }
         /* If no more new frames, exit */
     } while (!done);
 }

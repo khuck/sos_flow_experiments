@@ -29,13 +29,13 @@ class adios {
         adios2::Variable<int> thread_count;
         adios2::Variable<int> event_type_count;
         adios2::Variable<int> timer_count;
-        adios2::Variable<int> timer_event_count;
+        adios2::Variable<size_t> timer_event_count;
         adios2::Variable<int> counter_count;
-        adios2::Variable<int> counter_event_count;
-        adios2::Variable<int> comm_count;
-        adios2::Variable<long> event_timestamps;
-        adios2::Variable<long> counter_values;
-        adios2::Variable<long> comm_timestamps;
+        adios2::Variable<size_t> counter_event_count;
+        adios2::Variable<size_t> comm_count;
+        adios2::Variable<unsigned long> event_timestamps;
+        adios2::Variable<unsigned long> counter_values;
+        adios2::Variable<unsigned long> comm_timestamps;
     public:
         adios(json& _config) : 
             opened(false),
@@ -55,11 +55,11 @@ class adios {
         void open();
         void close();
         void define_attribute(std::string name, std::string value);
-        void write_variables(sos& my_sos, int num_timer_values,
-                int num_counter_values, int num_comm_values,
-                std::vector<long>& timer_values_array,
-                std::vector<long>& counter_values_array,
-                std::vector<long>& comm_values_array);
+        void write_variables(sos& my_sos, size_t num_timer_values,
+                size_t num_counter_values, size_t num_comm_values,
+                std::vector<unsigned long>& timer_values_array,
+                std::vector<unsigned long>& counter_values_array,
+                std::vector<unsigned long>& comm_values_array);
 };
 
 }; // end namespace extractor

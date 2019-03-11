@@ -11,7 +11,7 @@ CC = g++
 CC_FLAGS = -w -I$(JSON)/include -I$(SOS)/include \
 $(shell $(ADIOS2)/bin/adios2-config --cxx-flags) -std=c++11 -O0 -g \
 $(SANI)
-LD_FLAGS = -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib \
+LD_FLAGS = -O0 -g -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib \
 $(shell $(ADIOS2)/bin/adios2-config --cxx-libs) \
 $(SANI)
  
@@ -25,7 +25,6 @@ OBJECTS = $(SOURCES:.cpp=.o)
 $(EXEC): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(EXEC) $(LD_FLAGS)
 	codesign --force --deep --sign - ./$(EXEC)
-
  
 # To obtain object files
 %.o: %.cpp $(HEADERS) Makefile
@@ -37,4 +36,4 @@ clean:
 
 test: $(EXEC)
 	./$(EXEC)
-	$(ADIOS2)/../build/bin/bpls -A -D -d ./tautrace.bp
+	#$(ADIOS2)/../build/bin/bpls -A -D -d ./tautrace.bp

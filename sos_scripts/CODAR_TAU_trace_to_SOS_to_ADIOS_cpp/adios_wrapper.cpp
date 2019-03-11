@@ -6,6 +6,7 @@
 #include "adios_wrapper.hpp"
 #include "adios2.h"
 #include <unordered_set>
+#include <vector>
 #include "sos_wrapper.hpp"
 
 namespace extractor {
@@ -20,7 +21,7 @@ void adios::initialize() {
     // if not defined by user, we can change the default settings
     // BPFile is the default engine
     bpIO.SetEngine(config["adios"]["adios_method"].get<std::string>());
-    bpIO.SetParameters({{"num_threads", "1"}});
+    //bpIO.SetParameters({{"num_threads", "1"}});
 
     // ISO-POSIX file output is the default transport (called "File")
     // Passing parameters to the transport
@@ -33,19 +34,21 @@ void adios::define_variables(void) {
     const adios2::Dims shape{static_cast<size_t>(Nx)};
     const adios2::Dims start{static_cast<size_t>(Nx)};
     const adios2::Dims count{Nx};
-    program_count = bpIO.DefineVariable<int>("program_count", shape, start, count, adios2::ConstantDims);
-    comm_rank_count = bpIO.DefineVariable<int>("comm_rank_count", shape, start, count, adios2::ConstantDims);
-    thread_count = bpIO.DefineVariable<int>("thread_count", shape, start, count, adios2::ConstantDims);
-    event_type_count = bpIO.DefineVariable<int>("event_type_count", shape, start, count, adios2::ConstantDims);
-    timer_count = bpIO.DefineVariable<int>("timer_count", shape, start, count, adios2::ConstantDims);
-    timer_event_count = bpIO.DefineVariable<int>("timer_event_count", shape, start, count, adios2::ConstantDims);
-    counter_count = bpIO.DefineVariable<int>("counter_count", shape, start, count, adios2::ConstantDims);
-    counter_event_count = bpIO.DefineVariable<int>("counter_event_count", shape, start, count, adios2::ConstantDims);
-    comm_count = bpIO.DefineVariable<int>("comm_count", shape, start, count, adios2::ConstantDims);
+    program_count = bpIO.DefineVariable<int>("program_count");
+    comm_rank_count = bpIO.DefineVariable<int>("comm_rank_count");
+    thread_count = bpIO.DefineVariable<int>("thread_count");
+    event_type_count = bpIO.DefineVariable<int>("event_type_count");
+    timer_count = bpIO.DefineVariable<int>("timer_count");
+    timer_event_count = bpIO.DefineVariable<size_t>("timer_event_count");
+    counter_count = bpIO.DefineVariable<int>("counter_count");
+    counter_event_count = bpIO.DefineVariable<size_t>("counter_event_count");
+    comm_count = bpIO.DefineVariable<size_t>("comm_count");
 
-    event_timestamps = bpIO.DefineVariable<long>("event_timestamps", {1, 6}, {0, 0}, {1, 6});
-    counter_values = bpIO.DefineVariable<long>("counter_values", {1, 6}, {0, 0}, {1, 6});
-    comm_timestamps = bpIO.DefineVariable<long>("comm_timestamps", {1, 8}, {0, 0}, {1, 8});
+    event_timestamps = bpIO.DefineVariable<unsigned long>("event_timestamps", {1, 6}, {0, 0}, {0, 0});
+/*
+    counter_values = bpIO.DefineVariable<long>("counter_values", {6}, {0}, {0});
+    comm_timestamps = bpIO.DefineVariable<long>("comm_timestamps", {6}, {0}, {0});
+*/
 }
 
 void adios::open() {
@@ -79,12 +82,12 @@ void adios::define_attribute(std::string name, std::string value) {
 }
 
 void adios::write_variables(sos& my_sos,
-    int num_timer_values,
-    int num_counter_values,
-    int num_comm_values,
-    std::vector<long>& timer_values_array,
-    std::vector<long>& counter_values_array,
-    std::vector<long>& comm_values_array) 
+    size_t num_timer_values,
+    size_t num_counter_values,
+    size_t num_comm_values,
+    std::vector<unsigned long>& timer_values_array,
+    std::vector<unsigned long>& counter_values_array,
+    std::vector<unsigned long>& comm_values_array) 
 {
     int programs = my_sos.get_prog_count();
     int comm_ranks = my_sos.get_comm_rank_count();
@@ -105,14 +108,28 @@ void adios::write_variables(sos& my_sos,
     bpWriter.Put(counter_event_count, &num_counter_values);
     bpWriter.Put(comm_count, &num_comm_values);
 
-    event_timestamps.SetShape({(size_t) num_timer_values});
+/*
+    const adios2::Dims timer_shape{static_cast<size_t>(num_timer_values)};
+    const adios2::Dims timer_start{static_cast<size_t>(0)};
+    const adios2::Dims timer_count{static_cast<size_t>(num_timer_values)};
+    const adios2::Box<adios2::Dims> timer_selection{timer_start, timer_count};
+    event_timestamps.SetShape(timer_shape);
+    event_timestamps.SetSelection(timer_selection);
+*/
+    event_timestamps.SetShape({num_timer_values});
+    const adios2::Dims timer_start{static_cast<size_t>(0)};
+    const adios2::Dims timer_count{static_cast<size_t>(num_timer_values)};
+    const adios2::Box<adios2::Dims> timer_selection{timer_start, timer_count};
+    event_timestamps.SetSelection(timer_selection);
     bpWriter.Put(event_timestamps, timer_values_array.data());
+/*
 
-    counter_values.SetShape({(size_t) num_counter_values});
-    bpWriter.Put(counter_values, counter_values_array.data());
+    //counter_values.SetShape({(size_t) num_counter_values});
+    //bpWriter.Put(counter_values, counter_values_array.data());
 
-    comm_timestamps.SetShape({(size_t) num_comm_values});
-    bpWriter.Put(comm_timestamps, comm_values_array.data());
+    //comm_timestamps.SetShape({(size_t) num_comm_values});
+    //bpWriter.Put(comm_timestamps, comm_values_array.data());
+*/
 
     bpWriter.EndStep();
 }
