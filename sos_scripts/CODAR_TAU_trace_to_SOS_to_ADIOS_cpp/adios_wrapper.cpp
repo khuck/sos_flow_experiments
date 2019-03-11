@@ -44,9 +44,9 @@ void adios::define_variables(void) {
     counter_event_count = bpIO.DefineVariable<size_t>("counter_event_count");
     comm_count = bpIO.DefineVariable<size_t>("comm_count");
 
-    event_timestamps = bpIO.DefineVariable<unsigned long>("event_timestamps", {6}, {0}, {6});
-    counter_values = bpIO.DefineVariable<unsigned long>("counter_values", {6}, {0}, {6});
-    comm_timestamps = bpIO.DefineVariable<unsigned long>("comm_timestamps", {8}, {0}, {8});
+    event_timestamps = bpIO.DefineVariable<unsigned long>("event_timestamps", {1, 6}, {0, 0}, {1, 6});
+    counter_values = bpIO.DefineVariable<unsigned long>("counter_values", {1, 6}, {0, 0}, {1, 6});
+    comm_timestamps = bpIO.DefineVariable<unsigned long>("comm_timestamps", {1, 8}, {0, 0}, {1, 8});
 }
 
 void adios::open() {
@@ -93,9 +93,6 @@ void adios::write_variables(sos& my_sos,
     int event_types = my_sos.get_event_type_count();
     int timers = my_sos.get_timer_count();
     int counters = my_sos.get_counter_count();
-    unsigned long num_timer_events = num_timer_values / 6;
-    unsigned long num_counter_events = num_counter_values / 6;
-    unsigned long num_comm_events = num_comm_values / 8;
 
     bpWriter.BeginStep();
 
@@ -104,33 +101,33 @@ void adios::write_variables(sos& my_sos,
     bpWriter.Put(thread_count, &threads);
     bpWriter.Put(event_type_count, &event_types);
     bpWriter.Put(timer_count, &timers);
-    bpWriter.Put(timer_event_count, &num_timer_events);
+    bpWriter.Put(timer_event_count, &num_timer_values);
     bpWriter.Put(counter_count, &counters);
-    bpWriter.Put(counter_event_count, &num_counter_events);
-    bpWriter.Put(comm_count, &num_comm_events);
+    bpWriter.Put(counter_event_count, &num_counter_values);
+    bpWriter.Put(comm_count, &num_comm_values);
 
     if (num_timer_values > 0) {
-        event_timestamps.SetShape({num_timer_values});
-        const adios2::Dims timer_start{static_cast<size_t>(0)};
-        const adios2::Dims timer_count{static_cast<size_t>(num_timer_values)};
+        event_timestamps.SetShape({num_timer_values, 6});
+        const adios2::Dims timer_start{0, 0};
+        const adios2::Dims timer_count{static_cast<size_t>(num_timer_values), 6};
         const adios2::Box<adios2::Dims> timer_selection{timer_start, timer_count};
         event_timestamps.SetSelection(timer_selection);
         bpWriter.Put(event_timestamps, timer_values_array.data());
     }
 
     if (num_counter_values > 0) {
-        counter_values.SetShape({num_counter_values});
-        const adios2::Dims counter_start{static_cast<size_t>(0)};
-        const adios2::Dims counter_count{static_cast<size_t>(num_counter_values)};
+        counter_values.SetShape({num_counter_values, 6});
+        const adios2::Dims counter_start{0, 0};
+        const adios2::Dims counter_count{static_cast<size_t>(num_counter_values), 6};
         const adios2::Box<adios2::Dims> counter_selection{counter_start, counter_count};
         counter_values.SetSelection(counter_selection);
         bpWriter.Put(counter_values, counter_values_array.data());
     }
 
     if (num_comm_values > 0) {
-        comm_timestamps.SetShape({num_comm_values});
-        const adios2::Dims comm_start{static_cast<size_t>(0)};
-        const adios2::Dims comm_count{static_cast<size_t>(num_comm_values)};
+        comm_timestamps.SetShape({num_comm_values, 8});
+        const adios2::Dims comm_start{0, 0};
+        const adios2::Dims comm_count{static_cast<size_t>(num_comm_values), 8};
         const adios2::Box<adios2::Dims> comm_selection{comm_start, comm_count};
         comm_timestamps.SetSelection(comm_selection);
         bpWriter.Put(comm_timestamps, comm_values_array.data());
