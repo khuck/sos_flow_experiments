@@ -10,7 +10,9 @@
 #include <vector>
 #include <string.h>
 #include "sos_wrapper.hpp"
+#include "adios_wrapper.hpp"
 #include <unistd.h>
+#include "stdlib.h"
 
 namespace extractor {
 
@@ -129,24 +131,63 @@ std::vector<std::string> sos::split(const std::string& s, char delimiter)
    return tokens;
 }
 
-void sos::check_prog_name(char * prog_name, adios& my_adios) {
+bool sos::replace(std::string& str, const std::string& from, const std::string& to) {
+    size_t start_pos = str.find(from);
+    if(start_pos == std::string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
+    return true;
+}
+
+int sos::check_prog_name(char * prog_name, adios& my_adios) {
     if (prog_names.count(prog_name) == 0) {
         std::stringstream ss;
         ss << "program_name " << prog_names.size();
         prog_names[prog_name] = prog_names.size();
         my_adios.define_attribute(ss.str(), prog_name);
     }
+    return prog_names[prog_name];
 }
 
-void sos::check_comm_rank(char * comm_rank) {
-    if (comm_ranks.count(comm_rank) == 0) {
-        comm_ranks[comm_rank] = comm_ranks.size();
+int sos::check_event_type(std::string& event_type, adios& my_adios) {
+    if (event_types.count(event_type) == 0) {
+        std::stringstream ss;
+        ss << "event_type " << event_types.size();
+        event_types[event_type] = event_types.size();
+        my_adios.define_attribute(ss.str(), event_type);
+    }
+    return event_types[event_type];
+}
+
+int sos::check_timer(std::string& timer, adios& my_adios) {
+    if (timers.count(timer) == 0) {
+        std::stringstream ss;
+        ss << "timer " << timers.size();
+        timers[timer] = timers.size();
+        my_adios.define_attribute(ss.str(), timer);
+    }
+    return timers[timer];
+}
+
+int sos::check_counter(std::string& counter, adios& my_adios) {
+    if (counters.count(counter) == 0) {
+        std::stringstream ss;
+        ss << "counter " << counters.size();
+        counters[counter] = counters.size();
+        my_adios.define_attribute(ss.str(), counter);
+    }
+    return counters[counter];
+}
+
+void sos::check_comm_rank(int comm_rank) {
+    if (comm_rank > max_comm_rank) {
+        max_comm_rank = comm_rank;
     }
 }
 
-void sos::check_thread(std::string& thread) {
-    if (threads.count(thread) == 0) {
-        threads[thread] = threads.size();
+void sos::check_thread(int thread) {
+    if (thread > max_threads) {
+        max_threads = thread;
     }
 }
 
@@ -171,12 +212,12 @@ void sos::write_metadata(int frame, adios& my_adios) {
             continue;
         }
         check_prog_name(prog_name, my_adios);
-        check_comm_rank(comm_rank);
+        check_comm_rank(atoi(comm_rank));
         // tease apart the metadata name.
         auto tokens = split(value_name, ':');
         // thread = tokens[1]
         // metadata_key = tokens[2]
-        check_thread(tokens[1]);
+        check_thread(stoi(tokens[1]));
         std::stringstream attr_name;
         attr_name << "MetaData:" << prog_names[prog_name];
         attr_name << ":" << comm_rank << ":" << tokens[1] << ":" << tokens[2];
@@ -191,13 +232,13 @@ void sos::write_timer_data(int frame, adios& my_adios) {
     SSOS_result_claim(&results);
     total_valid = results.row_count;
     // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
-    std::vector<long> timer_values_array{total_valid * 6};
-    std::vector<long> counter_values_array{total_valid * 6};
-    std::vector<long> comm_values_array{total_valid * 8};
+    std::vector<long> timer_values_array(total_valid * 6, 0);
+    std::vector<long> counter_values_array(total_valid * 6, 0);
+    std::vector<long> comm_values_array(total_valid * 8, 0);
 
-    int timer_index = 0;
-    int counter_index = 0;
-    int comm_index = 0;
+    int timer_value_index = 0;
+    int counter_value_index = 0;
+    int comm_value_index = 0;
     /* create sorted tree of indexes into the results, ordered by
      * the timestamp, which is the value */
     std::vector< std::pair <long,int> > sorted;
@@ -208,6 +249,8 @@ void sos::write_timer_data(int frame, adios& my_adios) {
         sorted.push_back(std::make_pair((atof(results.data[r][time_index]) * 1000000),r));
     }
     sort(sorted.begin(), sorted.end());
+    static const std::string event_prefix{"TAU_EVENT_"};
+    static const std::string empty{""};
     for(auto iter = sorted.begin(); iter != sorted.end(); ++iter) {
         long timestamp = iter->first;
         int r = iter->second;
@@ -218,16 +261,54 @@ void sos::write_timer_data(int frame, adios& my_adios) {
             continue;
         }
         char * prog_name = results.data[r][prog_name_index];
-        char * comm_rank = results.data[r][comm_rank_index];
+        int comm_rank = atoi(results.data[r][comm_rank_index]);
         char * value_name = results.data[r][value_name_index];
         char * value = results.data[r][value_index];
-        check_prog_name(prog_name, my_adios);
+        int prog_index = check_prog_name(prog_name, my_adios);
         check_comm_rank(comm_rank);
         if ((strstr(value_name, "TAU_EVENT_ENTRY") != NULL) ||
             (strstr(value_name, "TAU_EVENT_EXIT") != NULL)) {
+            // tease apart the event name.
+            auto tokens = split(value_name, ':');
+            replace(tokens[0], event_prefix, empty);
+            int event_index = check_event_type(tokens[0], my_adios);
+            int thread = stoi(tokens[1]);
+            check_thread(thread);
+            int timer_index = check_timer(tokens[2], my_adios);
+            timer_values_array[timer_value_index++] = (long)(prog_index);
+            timer_values_array[timer_value_index++] = (long)(comm_rank);
+            timer_values_array[timer_value_index++] = (long)(thread);
+            timer_values_array[timer_value_index++] = (long)(event_index);
+            timer_values_array[timer_value_index++] = (long)(timer_index);
+            timer_values_array[timer_value_index++] = timestamp;
         } else if (strstr(value_name, "TAU_EVENT_COUNTER") != NULL) {
+            // tease apart the counter name.
+            auto tokens = split(value_name, ':');
+            int thread = stoi(tokens[1]);
+            check_thread(thread);
+            int counter_index = check_counter(tokens[2], my_adios);
+            counter_values_array[counter_value_index++] = (long)(prog_index);
+            counter_values_array[counter_value_index++] = (long)(comm_rank);
+            counter_values_array[counter_value_index++] = (long)(thread);
+            counter_values_array[counter_value_index++] = (long)(counter_index);
+            counter_values_array[counter_value_index++] = (long)(value);
+            counter_values_array[counter_value_index++] = timestamp;
         } else if ((strstr(value_name, "TAU_EVENT_SEND") != NULL) ||
                    (strstr(value_name, "TAU_EVENT_RECV") != NULL)) {
+            // tease apart the counter name.
+            auto tokens = split(value_name, ':');
+            replace(tokens[0], event_prefix, empty);
+            int event_index = check_event_type(tokens[0], my_adios);
+            int thread = stoi(tokens[1]);
+            check_thread(thread);
+            counter_values_array[comm_value_index++] = (long)(prog_index);
+            counter_values_array[comm_value_index++] = (long)(comm_rank);
+            counter_values_array[comm_value_index++] = (long)(thread);
+            counter_values_array[comm_value_index++] = (long)(event_index);
+            counter_values_array[comm_value_index++] = atol(tokens[2].c_str());
+            counter_values_array[comm_value_index++] = atol(tokens[3].c_str());
+            counter_values_array[comm_value_index++] = atol(tokens[4].c_str());
+            counter_values_array[comm_value_index++] = timestamp;
         } else {
             std::cerr << "Error: unknown event: " 
                       << prog_name << ", " 
@@ -235,6 +316,9 @@ void sos::write_timer_data(int frame, adios& my_adios) {
                       << value_name << std::endl;
         }
     }
+    my_adios.write_variables(*this, 
+    timer_value_index/6, counter_value_index/6, comm_value_index/8,
+    timer_values_array, counter_values_array, comm_values_array);
 
     SSOS_result_destroy(&results);
 }

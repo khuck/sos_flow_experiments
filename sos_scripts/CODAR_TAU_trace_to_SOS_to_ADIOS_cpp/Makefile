@@ -3,12 +3,17 @@ SOS=$(HOME)/src/sos_flow/install
 ADIOS2=$(HOME)/src/adios2_sst/install_nompi
 JSON=$(HOME)/src/json-3.5.0
 
+# special ops
+#SANI=-fsanitize=address -fsanitize=undefined
+
 # Declaration of variables
 CC = g++
 CC_FLAGS = -w -I$(JSON)/include -I$(SOS)/include \
-$(shell $(ADIOS2)/bin/adios2-config --cxx-flags) -std=c++11 -O0 -g
+$(shell $(ADIOS2)/bin/adios2-config --cxx-flags) -std=c++11 -O0 -g \
+$(SANI)
 LD_FLAGS = -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib \
-$(shell $(ADIOS2)/bin/adios2-config --cxx-libs)
+$(shell $(ADIOS2)/bin/adios2-config --cxx-libs) \
+$(SANI)
  
 # File names
 EXEC = extract
