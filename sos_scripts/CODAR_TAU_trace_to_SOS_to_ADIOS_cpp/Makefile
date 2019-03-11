@@ -36,4 +36,5 @@ clean:
 
 test: $(EXEC)
 	./$(EXEC)
-	#$(ADIOS2)/../build/bin/bpls -A -D -d ./tautrace.bp
+	$(ADIOS2)/../build/bin/bpls -A -d ./tautrace.bp
+	$(ADIOS2)/../build/bin/bpls -D -d ./tautrace.bp
