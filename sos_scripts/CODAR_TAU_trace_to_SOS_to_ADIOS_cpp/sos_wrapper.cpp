@@ -320,7 +320,7 @@ namespace extractor {
             }
         }
         my_adios.write_variables(*this, 
-                timer_value_index/6, counter_value_index/6, comm_value_index/8,
+                timer_value_index, counter_value_index, comm_value_index,
                 timer_values_array, counter_values_array, comm_values_array);
 
         SSOS_result_destroy(&results);
