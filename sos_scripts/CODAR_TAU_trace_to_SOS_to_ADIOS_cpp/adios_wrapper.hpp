@@ -41,13 +41,13 @@ class adios {
             opened(false),
             config(_config)
         {
-            PRINTSTACK()
+            TAU_SCOPED_TIMER_FUNC()
             initialize();
             open();
             define_variables();
         };
         ~adios() {
-            PRINTSTACK()
+            TAU_SCOPED_TIMER_FUNC()
             close();
         };
         void initialize();

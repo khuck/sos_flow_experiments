@@ -13,7 +13,7 @@
 void main_loop(extractor::sos& my_sos, extractor::adios& my_adios);
 
 int main (int argc, char * argv[]) {
-    PRINTSTACK()
+    TAU_SCOPED_TIMER_FUNC()
 
     std::string filename{"/Users/khuck/src/sos_flow_experiments/sos_scripts/CODAR_TAU_trace_to_SOS_to_ADIOS_cpp/config.json"};
     std::ifstream config_file(filename);

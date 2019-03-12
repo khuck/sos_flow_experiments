@@ -12,7 +12,7 @@
 namespace extractor {
 
 void adios::initialize() {
-    PRINTSTACK()
+    TAU_SCOPED_TIMER_FUNC()
     /** ADIOS class factory of IO class objects, DebugON is recommended */
     ad = adios2::ADIOS(true);
     /*** IO class object: settings and factory of Settings: Variables,
@@ -29,7 +29,7 @@ void adios::initialize() {
 }
 
 void adios::define_variables(void) {
-    PRINTSTACK()
+    TAU_SCOPED_TIMER_FUNC()
     const std::size_t Nx = 1;
     const adios2::Dims shape{static_cast<size_t>(Nx)};
     const adios2::Dims start{static_cast<size_t>(Nx)};
@@ -50,7 +50,7 @@ void adios::define_variables(void) {
 }
 
 void adios::open() {
-    PRINTSTACK()
+    TAU_SCOPED_TIMER_FUNC()
     if (!opened) {
         std::stringstream ss;
         ss << config["adios"]["outputdir"].get<std::string>();
@@ -63,7 +63,7 @@ void adios::open() {
 }
 
 void adios::close() {
-    PRINTSTACK()
+    TAU_SCOPED_TIMER_FUNC()
     if (opened) {
         bpWriter.Close();
         opened = false;
@@ -71,7 +71,7 @@ void adios::close() {
 };
 
 void adios::define_attribute(std::string name, std::string value) {
-    PRINTSTACK()
+    TAU_SCOPED_TIMER_FUNC()
     static std::unordered_set<std::string> seen;
     if (seen.count(name) == 0) {
         seen.insert(name);
@@ -87,7 +87,7 @@ void adios::write_variables(sos& my_sos,
     std::vector<unsigned long>& counter_values_array,
     std::vector<unsigned long>& comm_values_array) 
 {
-    PRINTSTACK()
+    TAU_SCOPED_TIMER_FUNC()
     int programs = my_sos.get_prog_count();
     int comm_ranks = my_sos.get_comm_rank_count();
     int threads = my_sos.get_thread_count();

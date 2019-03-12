@@ -7,6 +7,7 @@ JEMALLOC=$(HOME)/install/jemalloc/5.1.0
 
 # special ops
 #SANI=-fsanitize=address -fsanitize=undefined
+SANI=-L$(JEMALLOC)/lib -ljemalloc 
 
 # Declaration of variables
 CC = g++
@@ -16,7 +17,7 @@ $(shell $(ADIOS2)/bin/adios2-config --cxx-flags) -std=c++11 -O3 -g \
 $(SANI)
 LD_FLAGS = -std=c++11 -O3 -g -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib \
 $(shell $(ADIOS2)/bin/adios2-config --cxx-libs) \
--L$(JEMALLOC)/lib -ljemalloc $(SANI)
+$(SANI)
  
 # File names
 EXEC = extract

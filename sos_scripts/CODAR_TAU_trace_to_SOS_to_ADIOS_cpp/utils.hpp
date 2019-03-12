@@ -8,41 +8,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-
-//#define DEBUG_foo
-#ifdef DEBUG_foo
-
-namespace extractor {
-
-class stackPrinter {
-    private:
-        static int depth;
-    public:
-        stackPrinter(const char * name) {
-            for (int i = 0 ; i < depth ; i++) {
-                std::cout << "-"; 
-            } 
-            std::cout << " " << name << std::endl;
-            depth++;
-        }
-        ~stackPrinter() { depth--; }
-};
-
-inline int stackPrinter::depth{0};
-
-}; // end namespace extractor
-
-#define PRINTSTACK() extractor::stackPrinter tmp{__func__};
-
-#else // DEBUG
 #include "taustubs/tautimer.hpp"
-#define PRINTSTACK()                                                \
-    std::stringstream __ss##finfo;                                             \
-    __ss##finfo << __func__ << " [{" << __FILE__ << "} {" << __LINE__          \
-                << ",0}]";                                                     \
-    taustubs::scoped_timer __var##finfo(__ss##finfo.str());
-
-#endif // DEBUG
 
 inline void _my_assert(const char* expression, const char* file, int line)
 {

@@ -59,11 +59,11 @@ class sos {
             max_comm_rank(0),
             max_threads(0)
         {
-            PRINTSTACK()
+            TAU_SCOPED_TIMER_FUNC()
             connect();
         };
         ~sos() {
-            PRINTSTACK()
+            TAU_SCOPED_TIMER_FUNC()
             disconnect();
         };
         void connect();

@@ -13,12 +13,11 @@
 #include "adios_wrapper.hpp"
 #include <unistd.h>
 #include "stdlib.h"
-#include <thread>
 
 namespace extractor {
 
     void sos::connect() {
-        PRINTSTACK()
+        TAU_SCOPED_TIMER_FUNC()
             SSOS_init("extractor");
         connected = true;
         if (config["sosd"]["SOS_CMD_PORT"] != nullptr) {
@@ -40,7 +39,7 @@ namespace extractor {
     }
 
     void sos::disconnect() {
-        PRINTSTACK()
+        TAU_SCOPED_TIMER_FUNC()
             if (connected) {
                 SSOS_finalize();
             }
@@ -48,8 +47,10 @@ namespace extractor {
     };
 
     bool sos::check_for_frame(int frame) {
-        PRINTSTACK()
-            SSOS_query_results results;
+        TAU_SCOPED_TIMER_FUNC()
+        SSOS_query_results results;
+        results.data = nullptr;
+        results.col_names = nullptr;
         int max_frame_overall{0};
         bool ready = true;
         bool use_timeout = config["sosd"]["server_timeout"].get<bool>();
@@ -112,8 +113,10 @@ namespace extractor {
     }
 
     void sos::build_column_map() {
-        PRINTSTACK()
+        TAU_SCOPED_TIMER_FUNC()
         SSOS_query_results results;
+        results.data = nullptr;
+        results.col_names = nullptr;
         {
         TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "", 0, 1, hostname.c_str(), portnumber);
@@ -208,8 +211,10 @@ namespace extractor {
     }
 
     void sos::write_metadata(int frame, adios& my_adios) {
-        PRINTSTACK()
+        TAU_SCOPED_TIMER_FUNC()
         SSOS_query_results results;
+        results.data = nullptr;
+        results.col_names = nullptr;
         {
         TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "TAU_Metadata", frame, 1, hostname.c_str(), portnumber);
@@ -253,12 +258,8 @@ namespace extractor {
         }
     }
 
-    void background_sos_destroy(SSOS_query_results * results) {
-        SSOS_result_destroy(results);
-    }
-
     void sos::write_timer_data(int frame, adios& my_adios) {
-        PRINTSTACK()
+        TAU_SCOPED_TIMER_FUNC()
         SSOS_query_results results;
         {
         TAU_SCOPED_TIMER("SSOS_cache_grab")
@@ -306,6 +307,7 @@ namespace extractor {
             char * value = results.data[r][value_index];
             int prog_index = check_prog_name(prog_name, my_adios);
             check_comm_rank(comm_rank);
+            std::cout << value_name << std::endl;
             if ((strstr(value_name, "TAU_EVENT_ENTRY") != NULL) ||
                     (strstr(value_name, "TAU_EVENT_EXIT") != NULL)) {
                 // tease apart the event name.
@@ -356,15 +358,13 @@ namespace extractor {
                     << value_name << std::endl;
             }
         }
-        //std::thread wipe_thread(background_sos_destroy, &results);
-        my_adios.write_variables(*this, 
-                timer_value_index/6, counter_value_index/6, comm_value_index/8,
-                timer_values_array, counter_values_array, comm_values_array);
         {
         TAU_SCOPED_TIMER("SSOS_result_destroy")
         SSOS_result_destroy(&results);
         }
-        //wipe_thread.join();
+        my_adios.write_variables(*this, 
+               timer_value_index/6, counter_value_index/6, comm_value_index/8,
+               timer_values_array, counter_values_array, comm_values_array);
     }
 
     void sos::sql_query() {
