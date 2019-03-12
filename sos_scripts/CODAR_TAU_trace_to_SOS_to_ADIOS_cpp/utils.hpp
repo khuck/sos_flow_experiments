@@ -23,3 +23,7 @@ inline void _my_assert(const char* expression, const char* file, int line)
 #define MY_ASSERT(EXPRESSION) ((EXPRESSION) ? (void)0 : \
     _my_assert(#EXPRESSION, __FILE__, __LINE__))
 #endif
+
+#define LIKELY(condition) __builtin_expect(static_cast<bool>(condition), 1)
+#define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
+

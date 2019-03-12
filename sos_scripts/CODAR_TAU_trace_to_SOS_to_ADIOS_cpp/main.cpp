@@ -16,6 +16,7 @@ int main (int argc, char * argv[]) {
     TAU_SCOPED_TIMER_FUNC();
 
     std::string filename{"./config.json"};
+    //std::string filename{"/Users/khuck/src/sos_flow_experiments/sos_scripts/CODAR_TAU_trace_to_SOS_to_ADIOS_cpp/config.json"};
     if (argc == 1) {
         // use the default
     } else if (argc == 2) {

@@ -47,9 +47,8 @@ namespace extractor {
 
     bool sos::check_for_frame(int frame) {
         TAU_SCOPED_TIMER_FUNC();
-        SSOS_query_results manifest_results;
-        manifest_results.data = nullptr;
-        manifest_results.col_names = nullptr;
+        static SSOS_query_results * manifest_results;
+        static bool first{true};
         int max_frame_overall{0};
         bool ready = true;
         bool use_timeout = config["sosd"]["server_timeout"].get<bool>();
@@ -61,36 +60,37 @@ namespace extractor {
             ready = true;
             {
                 TAU_SCOPED_TIMER("SSOS_request_pub_manifest");
-                SSOS_request_pub_manifest(&manifest_results, &max_frame_overall, "", hostname.c_str(), portnumber);
+                if (UNLIKELY(first)) {
+                    SSOS_request_pub_manifest(&manifest_results, &max_frame_overall, "", hostname.c_str(), portnumber);
+                    first = false;
+                } else {
+                    SSOS_refresh_pub_manifest(manifest_results, &max_frame_overall, "", hostname.c_str(), portnumber);
+                }
             }
             // std::cout << "Max frame: " << max_frame_overall << std::endl;
             // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
             /* find the "pub_frame" column */
             const char * pf = "pub_frame";
             static int pf_index = -1;
-            if (pf_index == -1) {
-                for (int c = 0 ; c < manifest_results.col_count ; c++) {
-                    if (strcmp(manifest_results.col_names[c], pf) == 0) {
+            if (UNLIKELY(pf_index == -1)) {
+                for (int c = 0 ; c < manifest_results->col_count ; c++) {
+                    if (strcmp(manifest_results->col_names[c], pf) == 0) {
                         pf_index = c;
                         break;
                     }
                 }
             }
             /* check all the pubs to make sure they are at the desired frame */
-            if (manifest_results.row_count < expected_pubs) {
+            if (manifest_results->row_count < expected_pubs) {
                 ready = false;
                 std::cout << expected_pubs << " pubs not seen yet." << std::endl;
             } else {
-                for (int r = 0 ; r < manifest_results.row_count ; r++) {
-                    if (atoi(manifest_results.data[r][pf_index]) < frame) {
+                for (int r = 0 ; r < manifest_results->row_count ; r++) {
+                    if (atoi(manifest_results->data[r][pf_index]) < frame) {
                         ready = false;
                         std::cout << "pubs not at frame " << frame << " yet." << std::endl;
                     }
                 }
-            }
-            {
-                TAU_SCOPED_TIMER("SSOS_result_destroy");
-                SSOS_result_destroy(&manifest_results);
             }
             if (!ready) { 
                 not_ready_loops++;
@@ -104,7 +104,7 @@ namespace extractor {
         } while (!ready && !quit);
         std::cout << "Got frame " << frame << std::endl;
         static bool first_frame{true};
-        if (first_frame) {
+        if (UNLIKELY(first_frame)) {
             build_column_map();
             first_frame = false;
         }
@@ -296,7 +296,6 @@ namespace extractor {
             char * value = results.data[r][value_index];
             int prog_index = check_prog_name(prog_name, my_adios);
             check_comm_rank(comm_rank);
-            std::cout << value_name << std::endl;
             if ((strstr(value_name, "TAU_EVENT_ENTRY") != NULL) ||
                     (strstr(value_name, "TAU_EVENT_EXIT") != NULL)) {
                 // tease apart the event name.
