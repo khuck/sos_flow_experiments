@@ -13,11 +13,12 @@
 #include "adios_wrapper.hpp"
 #include <unistd.h>
 #include "stdlib.h"
+#include <thread>
 
 namespace extractor {
 
     void sos::connect() {
-        PRINTSTACK
+        PRINTSTACK()
             SSOS_init("extractor");
         connected = true;
         if (config["sosd"]["SOS_CMD_PORT"] != nullptr) {
@@ -39,7 +40,7 @@ namespace extractor {
     }
 
     void sos::disconnect() {
-        PRINTSTACK
+        PRINTSTACK()
             if (connected) {
                 SSOS_finalize();
             }
@@ -47,7 +48,7 @@ namespace extractor {
     };
 
     bool sos::check_for_frame(int frame) {
-        PRINTSTACK
+        PRINTSTACK()
             SSOS_query_results results;
         int max_frame_overall{0};
         bool ready = true;
@@ -88,6 +89,7 @@ namespace extractor {
                 not_ready_loops++;
                 if (use_timeout && (not_ready_loops >= max_loops)) {
                     quit = true;
+                    std::cout << "Exiting main loop." << std::endl;
                     return false;
                 }
                 usleep(config["sosd"]["usec_between_queries"].get<int>()); 
@@ -103,7 +105,7 @@ namespace extractor {
     }
 
     void sos::build_column_map() {
-        PRINTSTACK
+        PRINTSTACK()
             SSOS_query_results results;
         SSOS_cache_grab("", "", 0, 1, hostname.c_str(), portnumber);
         SSOS_result_claim(&results);
@@ -196,6 +198,7 @@ namespace extractor {
     }
 
     void sos::write_metadata(int frame, adios& my_adios) {
+        PRINTSTACK()
         SSOS_query_results results;
         SSOS_cache_grab("", "TAU_Metadata", frame, 1, hostname.c_str(), portnumber);
         SSOS_result_claim(&results);
@@ -230,7 +233,12 @@ namespace extractor {
         SSOS_result_destroy(&results);
     }
 
+    void background_sos_destroy(SSOS_query_results * results) {
+        SSOS_result_destroy(results);
+    }
+
     void sos::write_timer_data(int frame, adios& my_adios) {
+        PRINTSTACK()
         SSOS_query_results results;
         SSOS_cache_grab("", "TAU_EVENT", frame, 1, hostname.c_str(), portnumber);
         SSOS_result_claim(&results);
@@ -319,11 +327,12 @@ namespace extractor {
                     << value_name << std::endl;
             }
         }
+        //SSOS_result_destroy(&results);
+        std::thread wipe_thread(background_sos_destroy, &results);
         my_adios.write_variables(*this, 
                 timer_value_index/6, counter_value_index/6, comm_value_index/8,
                 timer_values_array, counter_values_array, comm_values_array);
-
-        SSOS_result_destroy(&results);
+        wipe_thread.join();
     }
 
     void sos::sql_query() {

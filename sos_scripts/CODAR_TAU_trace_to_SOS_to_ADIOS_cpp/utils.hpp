@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #define DEBUG
-#ifdef DEBUG
+//#define DEBUG_foo
+#ifdef DEBUG_foo
 
 namespace extractor {
 
@@ -32,10 +32,16 @@ inline int stackPrinter::depth{0};
 
 }; // end namespace extractor
 
-#define PRINTSTACK extractor::stackPrinter tmp{__func__};
+#define PRINTSTACK() extractor::stackPrinter tmp{__func__};
 
 #else // DEBUG
-#define PRINTSTACK 
+#include "taustubs/tautimer.hpp"
+#define PRINTSTACK()                                                \
+    std::stringstream __ss##finfo;                                             \
+    __ss##finfo << __func__ << " [{" << __FILE__ << "} {" << __LINE__          \
+                << ",0}]";                                                     \
+    taustubs::scoped_timer __var##finfo(__ss##finfo.str());
+
 #endif // DEBUG
 
 inline void _my_assert(const char* expression, const char* file, int line)

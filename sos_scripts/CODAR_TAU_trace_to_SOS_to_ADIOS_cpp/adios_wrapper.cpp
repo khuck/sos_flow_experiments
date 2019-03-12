@@ -12,7 +12,7 @@
 namespace extractor {
 
 void adios::initialize() {
-    PRINTSTACK
+    PRINTSTACK()
     /** ADIOS class factory of IO class objects, DebugON is recommended */
     ad = adios2::ADIOS(true);
     /*** IO class object: settings and factory of Settings: Variables,
@@ -21,7 +21,7 @@ void adios::initialize() {
     // if not defined by user, we can change the default settings
     // BPFile is the default engine
     bpIO.SetEngine(config["adios"]["adios_method"].get<std::string>());
-    //bpIO.SetParameters({{"num_threads", "1"}});
+    bpIO.SetParameters({{"num_threads", "2"}});
 
     // ISO-POSIX file output is the default transport (called "File")
     // Passing parameters to the transport
@@ -29,7 +29,7 @@ void adios::initialize() {
 }
 
 void adios::define_variables(void) {
-    PRINTSTACK
+    PRINTSTACK()
     const std::size_t Nx = 1;
     const adios2::Dims shape{static_cast<size_t>(Nx)};
     const adios2::Dims start{static_cast<size_t>(Nx)};
@@ -50,7 +50,7 @@ void adios::define_variables(void) {
 }
 
 void adios::open() {
-    PRINTSTACK
+    PRINTSTACK()
     if (!opened) {
         std::stringstream ss;
         ss << config["adios"]["outputdir"].get<std::string>();
@@ -63,7 +63,7 @@ void adios::open() {
 }
 
 void adios::close() {
-    PRINTSTACK
+    PRINTSTACK()
     if (opened) {
         bpWriter.Close();
         opened = false;
@@ -71,7 +71,7 @@ void adios::close() {
 };
 
 void adios::define_attribute(std::string name, std::string value) {
-    PRINTSTACK
+    PRINTSTACK()
     static std::unordered_set<std::string> seen;
     if (seen.count(name) == 0) {
         seen.insert(name);

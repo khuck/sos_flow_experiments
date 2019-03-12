@@ -41,13 +41,13 @@ class adios {
             opened(false),
             config(_config)
         {
-            PRINTSTACK
+            PRINTSTACK()
             initialize();
             open();
             define_variables();
         };
         ~adios() {
-            PRINTSTACK
+            PRINTSTACK()
             close();
         };
         void initialize();

@@ -59,11 +59,11 @@ class sos {
             max_comm_rank(0),
             max_threads(0)
         {
-            PRINTSTACK
+            PRINTSTACK()
             connect();
         };
         ~sos() {
-            PRINTSTACK
+            PRINTSTACK()
             disconnect();
         };
         void connect();

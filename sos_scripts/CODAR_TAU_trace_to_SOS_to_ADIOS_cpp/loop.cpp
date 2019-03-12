@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 
 void main_loop(extractor::sos& my_sos, extractor::adios& my_adios) {
-    PRINTSTACK
+    PRINTSTACK()
     bool done{false};
     int frame = 0;
     do {
