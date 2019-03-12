@@ -16,6 +16,8 @@
 
 namespace extractor {
 
+    /* Connect to the SOS daemon using the hostname and port specified
+     */
     void sos::connect() {
         SSOS_init("extractor");
         connected = true;
@@ -45,6 +47,9 @@ namespace extractor {
         connected = false;
     };
 
+    /* Get the SOS manifest, and see how many pubs have reached/passed
+     * the frame of interest.
+     */
     bool sos::check_for_frame(int frame) {
         TAU_SCOPED_TIMER_FUNC();
         static SSOS_query_results * manifest_results;
@@ -59,6 +64,10 @@ namespace extractor {
         do {
             ready = true;
             {
+                /* The first time we get the manifest, it has to be initialized.
+                 * After that, we can just refresh the values to avoid memory
+                 * free/alloc cycles
+                 */
                 TAU_SCOPED_TIMER("SSOS_request_pub_manifest");
                 if (UNLIKELY(first)) {
                     SSOS_request_pub_manifest(&manifest_results, &max_frame_overall, "", hostname.c_str(), portnumber);
@@ -67,8 +76,6 @@ namespace extractor {
                     SSOS_refresh_pub_manifest(manifest_results, &max_frame_overall, "", hostname.c_str(), portnumber);
                 }
             }
-            // std::cout << "Max frame: " << max_frame_overall << std::endl;
-            // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
             /* find the "pub_frame" column */
             const char * pf = "pub_frame";
             static int pf_index = -1;
@@ -92,17 +99,23 @@ namespace extractor {
                     }
                 }
             }
+            /* If we are still waiting, count how many timeouts we have,
+             * and don't exceed the number specified in the config file
+             */
             if (!ready) { 
                 not_ready_loops++;
                 if (use_timeout && (not_ready_loops >= max_loops)) {
                     quit = true;
                     std::cout << "Exiting main loop." << std::endl;
+                    /* No more work, exit. */
                     return false;
                 }
                 usleep(config["sosd"]["usec_between_queries"].get<int>()); 
             }
         } while (!ready && !quit);
+        /* All pubs are at the frame, we are good to go! */
         std::cout << "Got frame " << frame << std::endl;
+        /* First, get the column names for the cache grabs */
         static bool first_frame{true};
         if (UNLIKELY(first_frame)) {
             build_column_map();
@@ -111,6 +124,7 @@ namespace extractor {
         return true;
     }
 
+    /* Do a cache grab, and determine what order the columns are in */
     void sos::build_column_map() {
         TAU_SCOPED_TIMER_FUNC();
         {
@@ -128,13 +142,9 @@ namespace extractor {
         value_index = column_map["val"];
         frame_index = column_map["frame"];
         time_index = column_map["time_pack"];
-        /*
-           for (auto element : column_map) {
-           std::cout << element.first << "::" << element.second << std::endl;
-           }
-         */
     }
 
+    /* Helper function to tokenize strings into vectors of strings */
     std::vector<std::string> sos::split(const std::string& s, char delimiter)
     {
         std::vector<std::string> tokens;
@@ -147,6 +157,7 @@ namespace extractor {
         return tokens;
     }
 
+    /* Helper function to do substring replacement */
     bool sos::replace(std::string& str, const std::string& from, const std::string& to) {
         size_t start_pos = str.find(from);
         if(start_pos == std::string::npos)
@@ -155,6 +166,7 @@ namespace extractor {
         return true;
     }
 
+    /* Keep a map of program names to indexes */
     int sos::check_prog_name(char * prog_name, adios& my_adios) {
         if (prog_names.count(prog_name) == 0) {
             std::stringstream ss;
@@ -165,6 +177,7 @@ namespace extractor {
         return prog_names[prog_name];
     }
 
+    /* Keep a map of event types to indexes */
     int sos::check_event_type(std::string& event_type, adios& my_adios) {
         if (event_types.count(event_type) == 0) {
             std::stringstream ss;
@@ -175,6 +188,7 @@ namespace extractor {
         return event_types[event_type];
     }
 
+    /* Keep a map of timers to indexes */
     int sos::check_timer(std::string& timer, adios& my_adios) {
         if (timers.count(timer) == 0) {
             std::stringstream ss;
@@ -185,6 +199,7 @@ namespace extractor {
         return timers[timer];
     }
 
+    /* Keep a map of counters to indexes */
     int sos::check_counter(std::string& counter, adios& my_adios) {
         if (counters.count(counter) == 0) {
             std::stringstream ss;
@@ -195,18 +210,21 @@ namespace extractor {
         return counters[counter];
     }
 
+    /* Keep a map of max number of MPI communicators */
     void sos::check_comm_rank(int comm_rank) {
         if (comm_rank > max_comm_rank) {
             max_comm_rank = comm_rank;
         }
     }
 
+    /* Keep a map of max number of threads per process */
     void sos::check_thread(int thread) {
         if (thread > max_threads) {
             max_threads = thread;
         }
     }
 
+    /* Write the TAU metadata to the trace as ADIOS attributes */
     void sos::write_metadata(int frame, adios& my_adios) {
         TAU_SCOPED_TIMER_FUNC();
         {
@@ -217,9 +235,8 @@ namespace extractor {
             TAU_SCOPED_TIMER("SSOS_result_claim");
             SSOS_result_claim_initialized(&results, 0);
         }
-        //SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
         int total_valid = results.row_count;
-        // iterate over the rows
+        /* iterate over the rows, order doesn't matter */
         for (int r = 0 ; r < results.row_count ; r++) {
             TAU_SCOPED_TIMER("sos::write_metadata for loop");
             int this_frame = atoi(results.data[r][frame_index]);
@@ -248,6 +265,8 @@ namespace extractor {
         }
     }
 
+    /* Get all the events in the last frame of SOS data
+     * and write them to the trace as ADIOS variables */
     void sos::write_timer_data(int frame, adios& my_adios) {
         TAU_SCOPED_TIMER_FUNC();
         {
@@ -260,7 +279,6 @@ namespace extractor {
         }
         TAU_START("overheads")
         total_valid = results.row_count;
-        // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
         std::vector<unsigned long> timer_values_array(total_valid * 6, 0);
         std::vector<unsigned long> counter_values_array(total_valid * 6, 0);
         std::vector<unsigned long> comm_values_array(total_valid * 8, 0);
@@ -269,11 +287,12 @@ namespace extractor {
         int counter_value_index = 0;
         int comm_value_index = 0;
         /* create sorted tree of indexes into the results, ordered by
-         * the timestamp, which is the value */
+         * the timestamp, which is the pack time (not the true timestamp).
+         * This way, we ensure everything is in order for downstream processing */
         std::vector< std::pair <unsigned long,int> > sorted;
         total_valid = results.row_count;
         for (int r = 0 ; r < results.row_count ; r++) {
-            // can't use the timestamp, must sort by the pack time stamp.
+            /* can't use the timestamp, must sort by the pack time stamp! */
             //sorted.push_back(std::make_pair(atol(results.data[r][value_index]),r));
             sorted.push_back(std::make_pair((atof(results.data[r][time_index]) * 1000000),r));
         }
@@ -281,6 +300,8 @@ namespace extractor {
         static const std::string event_prefix{"TAU_EVENT_"};
         static const std::string empty{""};
         TAU_STOP("overheads")
+        /* Iterate over the sorted timestamps, and process each 
+         * associated row */
         for(auto iter = sorted.begin(); iter != sorted.end(); ++iter) {
             TAU_SCOPED_TIMER("sos::write_timer_data for loop");
             unsigned long timestamp = iter->first;
@@ -296,6 +317,7 @@ namespace extractor {
             char * value = results.data[r][value_index];
             int prog_index = check_prog_name(prog_name, my_adios);
             check_comm_rank(comm_rank);
+            /* Handle timer start/stop events */
             if ((strstr(value_name, "TAU_EVENT_ENTRY") != NULL) ||
                     (strstr(value_name, "TAU_EVENT_EXIT") != NULL)) {
                 // tease apart the event name.
@@ -311,6 +333,7 @@ namespace extractor {
                 timer_values_array[timer_value_index++] = (unsigned long)(event_index);
                 timer_values_array[timer_value_index++] = (unsigned long)(timer_index);
                 timer_values_array[timer_value_index++] = timestamp;
+            /* Handle counter events */
             } else if (strstr(value_name, "TAU_EVENT_COUNTER") != NULL) {
                 // tease apart the counter name.
                 auto tokens = split(value_name, ':');
@@ -323,6 +346,7 @@ namespace extractor {
                 counter_values_array[counter_value_index++] = (unsigned long)(counter_index);
                 counter_values_array[counter_value_index++] = (unsigned long)(value);
                 counter_values_array[counter_value_index++] = timestamp;
+            /* Handle communication events */
             } else if ((strstr(value_name, "TAU_EVENT_SEND") != NULL) ||
                     (strstr(value_name, "TAU_EVENT_RECV") != NULL)) {
                 // tease apart the counter name.
@@ -346,6 +370,7 @@ namespace extractor {
                     << value_name << std::endl;
             }
         }
+        /* Write to the ADIOS archive */
         my_adios.write_variables(*this, 
                timer_value_index/6, counter_value_index/6, comm_value_index/8,
                timer_values_array, counter_values_array, comm_values_array);

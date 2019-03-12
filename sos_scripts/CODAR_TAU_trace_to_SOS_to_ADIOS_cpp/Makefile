@@ -6,17 +6,19 @@ TCMALLOC?=$(HOME)/install/gperftools/2.7
 JEMALLOC?=$(HOME)/install/jemalloc/5.1.0
 
 # special ops
-#SPECIAL=-fsanitize=address -fsanitize=undefined
+#SPECIAL=-fsanitize=address -fsanitize=undefined -Wall -Werror
 #SPECIAL=-DUSE_TAU_STUBS
-SPECIAL=-L$(JEMALLOC)/lib -ljemalloc 
+#SPECIAL=-L$(JEMALLOC)/lib -ljemalloc 
 
 # Declaration of variables
 CC = g++
 LINKER = g++
-CC_FLAGS = -w -I$(JSON)/include -I$(SOS)/include \
-$(shell $(ADIOS2)/bin/adios2-config --cxx-flags) -std=c++11 -O3 -g \
+CC_FLAGS = -Wall -Werror -std=c++11 -Ofast -g \
+-I$(JSON)/include -I$(SOS)/include \
+$(shell $(ADIOS2)/bin/adios2-config --cxx-flags) \
 $(SPECIAL)
-LD_FLAGS = -std=c++11 -O3 -g -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib \
+LD_FLAGS = -Wall -Werror -std=c++11 -Ofast -g \
+-L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib \
 $(shell $(ADIOS2)/bin/adios2-config --cxx-libs) \
 $(SPECIAL)
  
@@ -29,7 +31,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 # Main target
 $(EXEC): $(OBJECTS)
 	$(LINKER) $(OBJECTS) -o $(EXEC) $(LD_FLAGS)
-	codesign --force --deep --sign - ./$(EXEC)
+	# codesign --force --deep --sign - ./$(EXEC)
  
 # To obtain object files
 %.o: %.cpp $(HEADERS) Makefile

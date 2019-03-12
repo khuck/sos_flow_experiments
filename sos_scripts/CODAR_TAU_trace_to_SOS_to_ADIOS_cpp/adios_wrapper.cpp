@@ -28,10 +28,6 @@ void adios::initialize() {
 }
 
 void adios::define_variables(void) {
-    const std::size_t Nx = 1;
-    const adios2::Dims shape{static_cast<size_t>(Nx)};
-    const adios2::Dims start{static_cast<size_t>(Nx)};
-    const adios2::Dims count{Nx};
     program_count = bpIO.DefineVariable<int>("program_count");
     comm_rank_count = bpIO.DefineVariable<int>("comm_rank_count");
     thread_count = bpIO.DefineVariable<int>("thread_count");
@@ -41,12 +37,13 @@ void adios::define_variables(void) {
     counter_count = bpIO.DefineVariable<int>("counter_count");
     counter_event_count = bpIO.DefineVariable<size_t>("counter_event_count");
     comm_count = bpIO.DefineVariable<size_t>("comm_count");
-
+    /* These are 2 dimensional variables, so they get special treatment */
     event_timestamps = bpIO.DefineVariable<unsigned long>("event_timestamps", {1, 6}, {0, 0}, {1, 6});
     counter_values = bpIO.DefineVariable<unsigned long>("counter_values", {1, 6}, {0, 0}, {1, 6});
     comm_timestamps = bpIO.DefineVariable<unsigned long>("comm_timestamps", {1, 8}, {0, 0}, {1, 8});
 }
 
+/* Open the ADIOS archive */
 void adios::open() {
     if (!opened) {
         std::stringstream ss;
@@ -59,6 +56,7 @@ void adios::open() {
     }
 }
 
+/* Close the ADIOS archive */
 void adios::close() {
     if (opened) {
         bpWriter.Close();
@@ -66,6 +64,7 @@ void adios::close() {
     }
 };
 
+/* Define an attribute (TAU metadata) */
 void adios::define_attribute(std::string name, std::string value) {
     static std::unordered_set<std::string> seen;
     if (seen.count(name) == 0) {
@@ -74,6 +73,7 @@ void adios::define_attribute(std::string name, std::string value) {
     }
 }
 
+/* Write the arrays of timestamps and values for this step */
 void adios::write_variables(sos& my_sos,
     size_t num_timer_values,
     size_t num_counter_values,

@@ -14,7 +14,7 @@ using json = nlohmann::json;
 namespace extractor {
 
 /* Forward declaration, included in adios_wrapper.cpp */
-extern class sos;
+class sos;
 
 /* Class containing ADIOS archive info */
 class adios {
