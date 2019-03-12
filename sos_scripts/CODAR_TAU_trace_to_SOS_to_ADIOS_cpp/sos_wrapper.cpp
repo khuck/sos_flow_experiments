@@ -291,6 +291,9 @@ namespace extractor {
          * This way, we ensure everything is in order for downstream processing */
         std::vector< std::pair <unsigned long,int> > sorted;
         total_valid = results.row_count;
+        if (results.row_count == 0) {
+            std::cerr << "Warning - no events in frame " << frame << std::endl;
+        }
         for (int r = 0 ; r < results.row_count ; r++) {
             /* can't use the timestamp, must sort by the pack time stamp! */
             //sorted.push_back(std::make_pair(atol(results.data[r][value_index]),r));

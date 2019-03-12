@@ -13,11 +13,11 @@ JEMALLOC?=$(HOME)/install/jemalloc/5.1.0
 # Declaration of variables
 CC = g++
 LINKER = g++
-CC_FLAGS = -Wall -Werror -std=c++11 -Ofast -g \
+CC_FLAGS = -Wall -Werror -std=c++11 -O3 -g \
 -I$(JSON)/include -I$(SOS)/include \
 $(shell $(ADIOS2)/bin/adios2-config --cxx-flags) \
 $(SPECIAL)
-LD_FLAGS = -Wall -Werror -std=c++11 -Ofast -g \
+LD_FLAGS = -Wall -Werror -std=c++11 -O3 -g \
 -L$(SOS)/lib -lsos -Wl,-rpath,$(SOS)/lib \
 $(shell $(ADIOS2)/bin/adios2-config --cxx-libs) \
 $(SPECIAL)

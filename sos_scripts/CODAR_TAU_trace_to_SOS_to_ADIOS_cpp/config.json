@@ -7,7 +7,7 @@
         "use_cache": true,
         "usec_between_queries": 500000,
         "server_timeout": true,
-        "exit_after_n_timeouts": 1,
+        "exit_after_n_timeouts": 5,
         "clean_database_after_frame": true,
         "aggregators" :{
             "count": 1,
