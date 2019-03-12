@@ -6,6 +6,7 @@
 #pragma once
 
 #include "utils.hpp"
+#include "ssos.h"
 #include <nlohmann/json.hpp>
 #include <string.h>
 #include <unordered_map>
@@ -44,6 +45,7 @@ class sos {
         std::unordered_map<std::string, int> counters;
         static std::vector<std::string> split(const std::string& s, char delimiter);
         static bool replace(std::string& str, const std::string& from, const std::string& to);
+        SSOS_query_results results;
     public:
         sos(json& _config) : 
             connected(false),
@@ -64,6 +66,7 @@ class sos {
         };
         ~sos() {
             TAU_SCOPED_TIMER_FUNC()
+            SSOS_result_destroy(&results);
             disconnect();
         };
         void connect();

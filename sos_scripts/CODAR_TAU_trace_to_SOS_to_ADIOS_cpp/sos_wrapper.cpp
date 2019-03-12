@@ -48,9 +48,9 @@ namespace extractor {
 
     bool sos::check_for_frame(int frame) {
         TAU_SCOPED_TIMER_FUNC()
-        SSOS_query_results results;
-        results.data = nullptr;
-        results.col_names = nullptr;
+        SSOS_query_results manifest_results;
+        manifest_results.data = nullptr;
+        manifest_results.col_names = nullptr;
         int max_frame_overall{0};
         bool ready = true;
         bool use_timeout = config["sosd"]["server_timeout"].get<bool>();
@@ -62,7 +62,7 @@ namespace extractor {
             ready = true;
             {
             TAU_SCOPED_TIMER("SSOS_request_pub_manifest")
-            SSOS_request_pub_manifest(&results, &max_frame_overall, "", hostname.c_str(), portnumber);
+            SSOS_request_pub_manifest(&manifest_results, &max_frame_overall, "", hostname.c_str(), portnumber);
             }
             // std::cout << "Max frame: " << max_frame_overall << std::endl;
             // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
@@ -70,20 +70,20 @@ namespace extractor {
             const char * pf = "pub_frame";
             static int pf_index = -1;
             if (pf_index == -1) {
-                for (int c = 0 ; c < results.col_count ; c++) {
-                    if (strcmp(results.col_names[c], pf) == 0) {
+                for (int c = 0 ; c < manifest_results.col_count ; c++) {
+                    if (strcmp(manifest_results.col_names[c], pf) == 0) {
                         pf_index = c;
                         break;
                     }
                 }
             }
             /* check all the pubs to make sure they are at the desired frame */
-            if (results.row_count < expected_pubs) {
+            if (manifest_results.row_count < expected_pubs) {
                 ready = false;
                 std::cout << expected_pubs << " pubs not seen yet." << std::endl;
             } else {
-                for (int r = 0 ; r < results.row_count ; r++) {
-                    if (atoi(results.data[r][pf_index]) < frame) {
+                for (int r = 0 ; r < manifest_results.row_count ; r++) {
+                    if (atoi(manifest_results.data[r][pf_index]) < frame) {
                         ready = false;
                         std::cout << "pubs not at frame " << frame << " yet." << std::endl;
                     }
@@ -91,7 +91,7 @@ namespace extractor {
             }
             {
             TAU_SCOPED_TIMER("SSOS_result_destroy")
-            SSOS_result_destroy(&results);
+            SSOS_result_destroy(&manifest_results);
             }
             if (!ready) { 
                 not_ready_loops++;
@@ -114,13 +114,11 @@ namespace extractor {
 
     void sos::build_column_map() {
         TAU_SCOPED_TIMER_FUNC()
-        SSOS_query_results results;
-        results.data = nullptr;
-        results.col_names = nullptr;
         {
         TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "", 0, 1, hostname.c_str(), portnumber);
         }
+        // this is the first claim, so it will initialize the results
         SSOS_result_claim(&results);
         for (int c = 0 ; c < results.col_count ; c++) {
             column_map[results.col_names[c]] = c;
@@ -212,16 +210,13 @@ namespace extractor {
 
     void sos::write_metadata(int frame, adios& my_adios) {
         TAU_SCOPED_TIMER_FUNC()
-        SSOS_query_results results;
-        results.data = nullptr;
-        results.col_names = nullptr;
         {
         TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "TAU_Metadata", frame, 1, hostname.c_str(), portnumber);
         }
         {
         TAU_SCOPED_TIMER("SSOS_result_claim")
-        SSOS_result_claim(&results);
+        SSOS_result_claim_initialized(&results, 0);
         }
         //SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
         int total_valid = results.row_count;
@@ -252,22 +247,17 @@ namespace extractor {
             attr_name << ":" << comm_rank << ":" << tokens[1] << ":" << tokens[2];
             my_adios.define_attribute(attr_name.str(), value);
         }
-        {
-        TAU_SCOPED_TIMER("SSOS_result_destroy")
-        SSOS_result_destroy(&results);
-        }
     }
 
     void sos::write_timer_data(int frame, adios& my_adios) {
         TAU_SCOPED_TIMER_FUNC()
-        SSOS_query_results results;
         {
         TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "TAU_EVENT", frame, 1, hostname.c_str(), portnumber);
         }
         {
         TAU_SCOPED_TIMER("SSOS_result_claim")
-        SSOS_result_claim(&results);
+        SSOS_result_claim_initialized(&results, 0);
         }
         TAU_START("overheads")
         total_valid = results.row_count;
@@ -358,29 +348,23 @@ namespace extractor {
                     << value_name << std::endl;
             }
         }
-        {
-        TAU_SCOPED_TIMER("SSOS_result_destroy")
-        SSOS_result_destroy(&results);
-        }
         my_adios.write_variables(*this, 
                timer_value_index/6, counter_value_index/6, comm_value_index/8,
                timer_values_array, counter_values_array, comm_values_array);
     }
 
+    /* Reference */
     void sos::sql_query() {
-        SSOS_query_results results;
         SSOS_query_exec("select * from tblpubs;", hostname.c_str(), portnumber);
         SSOS_result_claim(&results);
         SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
-        SSOS_result_destroy(&results);
     }
 
+    /* Reference */
     void sos::cache_grab() {
-        SSOS_query_results results;
         SSOS_cache_grab("", "", -1, 10, hostname.c_str(), portnumber);
         SSOS_result_claim(&results);
         SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
-        SSOS_result_destroy(&results);
     }
 
 }; // end namespace extractor
