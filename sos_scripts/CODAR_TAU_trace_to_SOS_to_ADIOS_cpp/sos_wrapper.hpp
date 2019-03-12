@@ -61,12 +61,9 @@ class sos {
             max_comm_rank(0),
             max_threads(0)
         {
-            TAU_SCOPED_TIMER_FUNC()
             connect();
         };
         ~sos() {
-            TAU_SCOPED_TIMER_FUNC()
-            SSOS_result_destroy(&results);
             disconnect();
         };
         void connect();

@@ -7,6 +7,7 @@ JEMALLOC?=$(HOME)/install/jemalloc/5.1.0
 
 # special ops
 #SPECIAL=-fsanitize=address -fsanitize=undefined
+#SPECIAL=-DUSE_TAU_STUBS
 SPECIAL=-L$(JEMALLOC)/lib -ljemalloc 
 
 # Declaration of variables

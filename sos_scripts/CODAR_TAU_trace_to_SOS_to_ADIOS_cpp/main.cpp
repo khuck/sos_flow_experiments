@@ -13,9 +13,17 @@
 void main_loop(extractor::sos& my_sos, extractor::adios& my_adios);
 
 int main (int argc, char * argv[]) {
-    TAU_SCOPED_TIMER_FUNC()
+    TAU_SCOPED_TIMER_FUNC();
 
-    std::string filename{"/Users/khuck/src/sos_flow_experiments/sos_scripts/CODAR_TAU_trace_to_SOS_to_ADIOS_cpp/config.json"};
+    std::string filename{"./config.json"};
+    if (argc == 1) {
+        // use the default
+    } else if (argc == 2) {
+        filename = std::string(argv[1]);
+    } else if (argc > 3) {
+        std::cout << "Usage: extract config.json" << std::endl;
+    }
+    std::cout << "Using config file: " << filename << std::endl;
     std::ifstream config_file(filename);
     json config;
     config_file >> config;

@@ -41,13 +41,11 @@ class adios {
             opened(false),
             config(_config)
         {
-            TAU_SCOPED_TIMER_FUNC()
             initialize();
             open();
             define_variables();
         };
         ~adios() {
-            TAU_SCOPED_TIMER_FUNC()
             close();
         };
         void initialize();
