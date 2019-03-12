@@ -87,6 +87,7 @@ void adios::write_variables(sos& my_sos,
     std::vector<unsigned long>& counter_values_array,
     std::vector<unsigned long>& comm_values_array) 
 {
+    PRINTSTACK()
     int programs = my_sos.get_prog_count();
     int comm_ranks = my_sos.get_comm_rank_count();
     int threads = my_sos.get_thread_count();

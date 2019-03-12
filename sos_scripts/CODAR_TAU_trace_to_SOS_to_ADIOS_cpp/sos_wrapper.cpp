@@ -58,7 +58,11 @@ namespace extractor {
         int not_ready_loops = 0;
         bool quit = false;
         do {
+            ready = true;
+            {
+            TAU_SCOPED_TIMER("SSOS_request_pub_manifest")
             SSOS_request_pub_manifest(&results, &max_frame_overall, "", hostname.c_str(), portnumber);
+            }
             // std::cout << "Max frame: " << max_frame_overall << std::endl;
             // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 3);
             /* find the "pub_frame" column */
@@ -84,7 +88,10 @@ namespace extractor {
                     }
                 }
             }
+            {
+            TAU_SCOPED_TIMER("SSOS_result_destroy")
             SSOS_result_destroy(&results);
+            }
             if (!ready) { 
                 not_ready_loops++;
                 if (use_timeout && (not_ready_loops >= max_loops)) {
@@ -106,8 +113,11 @@ namespace extractor {
 
     void sos::build_column_map() {
         PRINTSTACK()
-            SSOS_query_results results;
+        SSOS_query_results results;
+        {
+        TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "", 0, 1, hostname.c_str(), portnumber);
+        }
         SSOS_result_claim(&results);
         for (int c = 0 ; c < results.col_count ; c++) {
             column_map[results.col_names[c]] = c;
@@ -200,12 +210,19 @@ namespace extractor {
     void sos::write_metadata(int frame, adios& my_adios) {
         PRINTSTACK()
         SSOS_query_results results;
+        {
+        TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "TAU_Metadata", frame, 1, hostname.c_str(), portnumber);
+        }
+        {
+        TAU_SCOPED_TIMER("SSOS_result_claim")
         SSOS_result_claim(&results);
+        }
         //SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
         int total_valid = results.row_count;
         // iterate over the rows
         for (int r = 0 ; r < results.row_count ; r++) {
+            TAU_SCOPED_TIMER("sos::write_metadata for loop")
             int this_frame = atoi(results.data[r][frame_index]);
             if (this_frame != frame) {
                 total_valid = total_valid - 1;
@@ -230,7 +247,10 @@ namespace extractor {
             attr_name << ":" << comm_rank << ":" << tokens[1] << ":" << tokens[2];
             my_adios.define_attribute(attr_name.str(), value);
         }
+        {
+        TAU_SCOPED_TIMER("SSOS_result_destroy")
         SSOS_result_destroy(&results);
+        }
     }
 
     void background_sos_destroy(SSOS_query_results * results) {
@@ -240,8 +260,15 @@ namespace extractor {
     void sos::write_timer_data(int frame, adios& my_adios) {
         PRINTSTACK()
         SSOS_query_results results;
+        {
+        TAU_SCOPED_TIMER("SSOS_cache_grab")
         SSOS_cache_grab("", "TAU_EVENT", frame, 1, hostname.c_str(), portnumber);
+        }
+        {
+        TAU_SCOPED_TIMER("SSOS_result_claim")
         SSOS_result_claim(&results);
+        }
+        TAU_START("overheads")
         total_valid = results.row_count;
         // SOSA_results_output_to(stdout, reinterpret_cast<SOSA_results*>(&results), "", 0);
         std::vector<unsigned long> timer_values_array(total_valid * 6, 0);
@@ -263,7 +290,9 @@ namespace extractor {
         sort(sorted.begin(), sorted.end());
         static const std::string event_prefix{"TAU_EVENT_"};
         static const std::string empty{""};
+        TAU_STOP("overheads")
         for(auto iter = sorted.begin(); iter != sorted.end(); ++iter) {
+            TAU_SCOPED_TIMER("sos::write_timer_data for loop")
             unsigned long timestamp = iter->first;
             int r = iter->second;
             int row_frame = atoi(results.data[r][frame_index]);
@@ -327,12 +356,15 @@ namespace extractor {
                     << value_name << std::endl;
             }
         }
-        //SSOS_result_destroy(&results);
-        std::thread wipe_thread(background_sos_destroy, &results);
+        //std::thread wipe_thread(background_sos_destroy, &results);
         my_adios.write_variables(*this, 
                 timer_value_index/6, counter_value_index/6, comm_value_index/8,
                 timer_values_array, counter_values_array, comm_values_array);
-        wipe_thread.join();
+        {
+        TAU_SCOPED_TIMER("SSOS_result_destroy")
+        SSOS_result_destroy(&results);
+        }
+        //wipe_thread.join();
     }
 
     void sos::sql_query() {
